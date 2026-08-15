@@ -1,0 +1,3179 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>命の樹 - 食物連鎖カードゲーム</title>
+
+<style>
+:root{
+  --bg:#eef4e8;
+  --panel:#fff;
+  --line:#c9d8bf;
+  --text:#243120;
+  --accent:#4f7f3a;
+  --grass:#77a943;
+  --water:#5ba9d6;
+  --bug:#8a6a3d;
+  --shadow:0 6px 18px rgba(43,68,34,.12);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:"Yu Gothic UI","Meiryo",sans-serif;
+  background:linear-gradient(#dfead7,#f3f6f0);
+  color:var(--text);
+  min-height:100vh;
+}
+button{
+  font:inherit;
+  border:0;
+  border-radius:9px;
+  cursor:pointer;
+}
+button:disabled{opacity:.4;cursor:not-allowed}
+.app{max-width:1200px;margin:0 auto;padding:8px}
+.header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-bottom:6px;
+}
+.title{font-size:26px;font-weight:900;color:#315d27}
+.subtitle{font-size:11px;color:#65745f}
+.top-actions{display:flex;gap:5px}
+.btn{padding:8px 10px;background:#e9efe5;color:#31472c;border:1px solid var(--line);font-weight:700}
+.btn.primary{background:var(--accent);color:#fff}
+.btn.warn{background:#f5e7e5;color:#7b3128}
+
+.statusbar{
+  display:flex;
+  flex-wrap:wrap;
+  gap:4px;
+  margin-bottom:6px;
+}
+.status{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:4px 7px;
+  min-width:72px;
+}
+.status b{display:block;font-size:8px;color:#60705b;margin-bottom:1px}
+.status span{font-size:13px;font-weight:900}
+
+.layout{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 120px;
+  gap:7px;
+  align-items:start;
+}
+.main,.side{display:flex;flex-direction:column;gap:7px}
+.panel{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:10px;
+  box-shadow:var(--shadow);
+  padding:8px;
+}
+.panel h2{margin:0 0 7px;font-size:15px;color:#385d2e}
+
+.resource-row{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:5px;
+}
+.resource{
+  border-radius:8px;
+  padding:7px 4px;
+  text-align:center;
+  color:#fff;
+  font-weight:900;
+}
+.resource small{display:block;font-size:10px}
+.resource .num{font-size:20px}
+.grass{background:var(--grass)}
+.water{background:var(--water)}
+.bug{background:var(--bug)}
+
+.cards{display:flex;gap:5px}
+.hand-fixed,.field-fixed{
+  height:138px;
+  min-height:138px;
+  max-height:138px;
+  overflow-x:auto;
+  overflow-y:hidden;
+  flex-wrap:nowrap;
+  align-items:flex-start;
+}
+.card{
+  flex:0 0 74px;
+  width:74px;
+  min-width:74px;
+  min-height:126px;
+  background:linear-gradient(#fff,#f7faf5);
+  border:1px solid #ccd9c6;
+  border-radius:9px;
+  padding:4px 3px;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  box-shadow:0 2px 6px rgba(0,0,0,.06);
+}
+.card .animal{font-size:21px;text-align:center}
+.card .name{font-size:10px;font-weight:900;text-align:center}
+.card .level{font-size:8px;text-align:center;color:#c38a19;font-weight:900}
+.card .cost{
+  margin-top:auto;
+  font-size:7px;
+  line-height:1.2;
+  text-align:center;
+  background:#edf3e9;
+  border-radius:6px;
+  padding:3px 1px;
+}
+.draggable-card{cursor:grab;user-select:none}
+.dragging-card{opacity:.55}
+#field.drop-target{
+  outline:3px dashed var(--accent);
+  outline-offset:2px;
+  background:#f3faef;
+}
+
+
+#field{
+  --field-card-width:74px;
+}
+.field-insert-placeholder{
+  flex:0 0 0;
+  width:0;
+  min-width:0;
+  height:126px;
+  border:2px dashed var(--accent);
+  border-radius:9px;
+  background:rgba(122,172,95,.12);
+  opacity:0;
+  pointer-events:none;
+  transition:
+    flex-basis .14s ease,
+    width .14s ease,
+    min-width .14s ease,
+    opacity .10s ease;
+}
+.field-insert-placeholder.open{
+  flex-basis:var(--field-card-width);
+  width:var(--field-card-width);
+  min-width:var(--field-card-width);
+  opacity:1;
+}
+
+
+.egg-token{
+  flex:0 0 0;
+  width:0;
+  min-width:0;
+  height:126px;
+  position:relative;
+  z-index:30;
+  overflow:visible;
+  pointer-events:none;
+}
+.egg-token span{
+  position:absolute;
+  left:0;
+  top:58%;
+  transform:translate(-50%,-50%);
+  font-size:28px;
+  line-height:1;
+  filter:drop-shadow(0 2px 2px rgba(0,0,0,.35));
+  background:rgba(255,255,255,.72);
+  border-radius:999px;
+  padding:2px;
+}
+
+.pick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:5px}
+.pick{padding:7px 3px;color:#fff;font-weight:900}
+
+.phase-panel{padding:6px}
+.phase-strip{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:2px;
+}
+.phase{
+  min-width:0;
+  padding:4px 1px;
+  text-align:center;
+  border-radius:6px;
+  background:#edf2ea;
+  color:#63705f;
+  font-size:8px;
+  border:1px solid #d9e2d4;
+}
+.phase.active{background:var(--accent);color:#fff;font-weight:900}
+
+.tree{text-align:center;padding:6px 4px}
+.tree-wrap{
+  min-height:180px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:3px;
+}
+.tree-progress.vertical{
+  width:12px;
+  height:120px;
+  background:#e5ece1;
+  border-radius:999px;
+  overflow:hidden;
+  display:flex;
+  align-items:flex-end;
+}
+.tree-progress.vertical .tree-fill{
+  width:100%;
+  height:0%;
+  background:linear-gradient(0deg,#3f7333,#87b866);
+  transition:.2s;
+}
+.tree-icon{font-size:30px}
+.vp{font-size:15px;font-weight:900;color:#376229}
+
+.notice{
+  padding:8px;
+  background:#fff6dd;
+  border:1px solid #e8d29b;
+  color:#765b19;
+  border-radius:8px;
+  font-size:11px;
+}
+.actions{display:flex;flex-direction:column;gap:5px}
+.action-btn{
+  width:100%;
+  padding:8px;
+  background:var(--accent);
+  color:#fff;
+  font-weight:800;
+  font-size:11px;
+}
+.action-btn.secondary{background:#668b56}
+.action-btn.special{background:#8a6a3d}
+.action-btn.end{background:#5a6756}
+
+.bottom-log{margin-top:7px}
+.log{
+  height:150px;
+  overflow:auto;
+  background:#182016;
+  color:#dce9d7;
+  border-radius:8px;
+  padding:8px;
+  font-size:11px;
+  line-height:1.5;
+}
+.help{font-size:12px;line-height:1.65;color:#4f614a}
+.empty{color:#819079;padding:16px 3px}
+
+.floating-phase-window{
+  position:fixed;
+  left:calc(100vw - 274px);
+  top:calc(100vh - 230px);
+  width:260px;
+  max-width:calc(100vw - 16px);
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:12px;
+  box-shadow:0 14px 36px rgba(0,0,0,.24);
+  z-index:10000;
+  overflow:hidden;
+}
+.floating-phase-window .floating-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:9px 11px;
+  background:var(--accent);
+  color:#fff;
+  font-weight:900;
+  cursor:move;
+  user-select:none;
+  -webkit-user-select:none;
+  touch-action:none;
+}
+.floating-phase-window .floating-header .drag-label{
+  font-size:10px;
+  opacity:.9;
+  white-space:nowrap;
+}
+.floating-phase-window .floating-body{padding:8px}
+.floating-phase-window .notice{margin-bottom:7px}
+
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(20,28,18,.58);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:12000;
+  padding:20px;
+}
+.modal.show{display:flex}
+.modal-card{
+  width:min(320px,92vw);
+  background:#fff;
+  border-radius:16px;
+  padding:20px;
+  text-align:center;
+  box-shadow:0 18px 50px rgba(0,0,0,.28);
+}
+.dice-icons{
+  min-height:100px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:7px;
+  padding:12px;
+  border:2px solid #bfcdb9;
+  border-radius:18px;
+  background:#f8fbf6;
+  margin-bottom:12px;
+}
+.dice-icons span{font-size:38px}
+.modal-result{font-size:16px;font-weight:800;margin-bottom:14px}
+
+@media(max-width:520px){
+  .app{padding:5px}
+  .header{margin-bottom:5px}
+  .title{font-size:22px}
+  .subtitle{font-size:9px}
+  .top-actions{width:100%;display:grid;grid-template-columns:repeat(3,1fr)}
+  .btn{padding:7px 3px;font-size:10px}
+
+  .statusbar{flex-wrap:nowrap;overflow-x:auto;gap:3px}
+  .status{min-width:66px;padding:3px 5px}
+  .status b{font-size:7px}
+  .status span{font-size:11px}
+
+  .layout{grid-template-columns:minmax(0,1fr) 78px;gap:5px}
+  .main,.side{gap:5px}
+  .panel{padding:6px}
+  .panel h2{font-size:13px;margin-bottom:5px}
+
+  .resource-row{gap:3px}
+  .resource{padding:6px 2px}
+  .resource small{font-size:8px}
+  .resource .num{font-size:17px}
+
+  .hand-fixed,.field-fixed{
+    height:126px;
+    min-height:126px;
+    max-height:126px;
+  }
+  #hand{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:3px;overflow:hidden}
+  #hand .card{
+    width:100%;
+    min-width:0;
+    flex:none;
+    min-height:116px;
+    padding:3px 1px;
+  }
+  #field{
+    --field-card-width:62px;
+  }
+  #field .card{
+    flex:0 0 62px;
+    width:62px;
+    min-width:62px;
+    min-height:116px;
+    padding:3px 2px;
+  }
+  .card .animal{font-size:18px}
+  .card .name{font-size:8px}
+  .card .level{font-size:7px}
+  .card .cost{font-size:6px;padding:2px 1px}
+
+
+  .egg-token{
+    height:116px;
+  }
+  .egg-token span{
+    top:58%;
+    font-size:23px;
+    padding:1px;
+  }
+
+  .phase{font-size:7px;padding:4px 0}
+
+  .tree-wrap{min-height:165px}
+  .tree-progress.vertical{height:108px;width:10px}
+  .tree-icon{font-size:26px}
+  .vp{font-size:13px}
+
+  .floating-phase-window{
+    width:220px;
+    left:calc(100vw - 226px);
+    top:calc(100vh - 210px);
+  }
+  .floating-phase-window .floating-header{font-size:11px;padding:7px 9px}
+  .floating-phase-window .floating-body{padding:6px}
+  .action-btn{font-size:10px;padding:7px}
+  .notice{font-size:10px;padding:6px}
+
+  .phase-status{
+    min-width:96px !important;
+    flex:0 0 auto;
+  }
+  .phase-status b{font-size:7px !important}
+  .phase-status span{font-size:11px !important}
+  .other-field-btn{
+    font-size:9px;
+    padding:7px 2px;
+    line-height:1.2;
+  }
+
+}
+
+.stock-row{grid-template-columns:repeat(4,1fr)}
+.decomposer{background:#6f7d5b}
+.card.level2{
+  border-color:#b88a3a;
+  background:linear-gradient(#fffaf0,#f8f1df);
+}
+.card.prey-selectable{
+  outline:3px solid #d05b43;
+  outline-offset:-2px;
+  cursor:pointer;
+  position:relative;
+}
+.card.prey-selectable::after{
+  content:"捕食";
+  position:absolute;
+  top:3px;
+  right:3px;
+  padding:2px 4px;
+  border-radius:999px;
+  background:#d05b43;
+  color:#fff;
+  font-size:7px;
+  font-weight:900;
+}
+.card.predator-active{
+  box-shadow:0 0 0 3px #d19a36 inset, 0 2px 6px rgba(0,0,0,.08);
+}
+.card.pending-card{
+  outline:3px dashed #d19a36;
+  outline-offset:-2px;
+}
+.egg-token span{
+  cursor:default;
+}
+
+
+.card.recycle-selected{
+  outline:3px solid #6f7d5b;
+  outline-offset:-2px;
+  background:linear-gradient(#f4f8ed,#e5ecd9);
+  position:relative;
+}
+.card.recycle-selected::after{
+  content:"分解";
+  position:absolute;
+  top:3px;
+  right:3px;
+  padding:2px 4px;
+  border-radius:999px;
+  background:#6f7d5b;
+  color:#fff;
+  font-size:7px;
+  font-weight:900;
+}
+
+
+.card.nature-card{
+  border-color:#5f7899;
+  background:linear-gradient(#f4f8ff,#e8eef8);
+  cursor:default;
+  position:relative;
+}
+.card.nature-card .animal{font-size:25px}
+.card.nature-card .name{color:#365374}
+.card.nature-card.usable-nature{
+  cursor:pointer;
+  outline:3px solid #5f7899;
+  outline-offset:-2px;
+}
+.card.nature-card.usable-nature::after{
+  content:"発動";
+  position:absolute;
+  top:3px;
+  right:3px;
+  padding:2px 4px;
+  border-radius:999px;
+  background:#5f7899;
+  color:#fff;
+  font-size:7px;
+  font-weight:900;
+}
+
+
+.phase-status{
+  white-space:nowrap;
+  min-width:max-content;
+}
+.phase-status b,
+.phase-status span{
+  white-space:nowrap;
+}
+.side{
+  align-self:stretch;
+}
+.tree{
+  display:flex;
+  flex-direction:column;
+  height:100%;
+}
+.tree-wrap{
+  flex:1 1 auto;
+}
+.other-field-btn{
+  width:100%;
+  padding:8px 4px;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:#edf2ea;
+  color:#4c5f47;
+  font-weight:900;
+  font-size:11px;
+  box-shadow:var(--shadow);
+}
+.other-field-btn:disabled{
+  opacity:1;
+  cursor:default;
+}
+
+
+.layout{
+  align-items:stretch;
+}
+.main{
+  min-width:0;
+}
+.side{
+  min-width:0;
+  display:grid;
+  grid-template-rows:minmax(0,1fr) auto;
+  gap:5px;
+}
+.side .tree{
+  min-height:100%;
+}
+
+
+/* ===== v7 layout alignment ===== */
+.layout{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) 120px !important;
+  grid-template-rows:auto 138px 138px auto !important;
+  gap:7px !important;
+  align-items:stretch !important;
+}
+.main,
+.side{
+  display:contents !important;
+}
+.main > .panel:nth-child(1){
+  grid-column:1;
+  grid-row:1;
+}
+.main > .panel:nth-child(2){
+  grid-column:1;
+  grid-row:2;
+  min-height:0;
+}
+.main > .panel:nth-child(3){
+  grid-column:1;
+  grid-row:3;
+  min-height:0;
+}
+.main > .panel:nth-child(4){
+  grid-column:1;
+  grid-row:4;
+}
+.side > .tree{
+  grid-column:2;
+  grid-row:1 / span 3;
+  height:auto !important;
+  min-height:0 !important;
+  padding:4px 3px !important;
+  display:flex !important;
+  flex-direction:column !important;
+}
+.side > .other-field-btn{
+  grid-column:2;
+  grid-row:4;
+  width:100%;
+  height:100%;
+  min-height:0;
+  align-self:stretch;
+  padding:5px 3px;
+  font-size:10px;
+  line-height:1.2;
+}
+.side > #rulesPanel{
+  grid-column:1 / span 2;
+  grid-row:5;
+}
+
+/* 命の樹内部の余白を極小化し、バーを最大限伸ばす */
+.tree h2{
+  flex:0 0 auto;
+  margin:0 0 2px !important;
+}
+.tree-wrap{
+  flex:1 1 auto !important;
+  min-height:0 !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:stretch !important;
+  gap:2px !important;
+  padding:0 !important;
+}
+.tree-progress.vertical{
+  flex:1 1 auto !important;
+  width:12px !important;
+  height:auto !important;
+  min-height:0 !important;
+  margin:0 !important;
+}
+.tree-info{
+  flex:0 0 auto !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  gap:0 !important;
+}
+.tree-icon{
+  font-size:25px !important;
+  line-height:1 !important;
+}
+.vp{
+  font-size:12px !important;
+  line-height:1.1 !important;
+  white-space:nowrap;
+}
+
+/* 現在フェイズはスマホでも1行固定 */
+.phase-status,
+.phase-status b,
+.phase-status span{
+  white-space:nowrap !important;
+}
+.phase-status{
+  min-width:max-content !important;
+  flex:0 0 auto !important;
+}
+
+@media(max-width:520px){
+  .layout{
+    grid-template-columns:minmax(0,1fr) 78px !important;
+    grid-template-rows:auto 126px 126px auto !important;
+    gap:5px !important;
+  }
+  .side > .other-field-btn{
+    font-size:8px !important;
+    padding:4px 2px !important;
+  }
+  .tree-progress.vertical{
+    width:10px !important;
+  }
+  .tree-icon{
+    font-size:22px !important;
+  }
+  .vp{
+    font-size:10px !important;
+  }
+  .phase-status{
+    min-width:96px !important;
+  }
+}
+
+
+.card.level3{
+  border-color:#7a4fa3;
+  background:linear-gradient(#fbf7ff,#eee4f7);
+}
+
+
+/* ===== v9 hand alignment fix ===== */
+#hand.hand-fixed{
+  display:grid !important;
+  grid-template-columns:repeat(6,minmax(0,1fr)) !important;
+  grid-auto-flow:column;
+  gap:4px !important;
+  width:100% !important;
+  height:138px !important;
+  min-height:138px !important;
+  max-height:138px !important;
+  padding:0 !important;
+  margin:0 !important;
+  overflow:hidden !important;
+  align-items:stretch !important;
+}
+
+#hand.hand-fixed > .card{
+  box-sizing:border-box !important;
+  width:100% !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  height:100% !important;
+  min-height:0 !important;
+  max-height:100% !important;
+  margin:0 !important;
+  padding:4px 2px !important;
+  overflow:hidden !important;
+  flex:none !important;
+}
+
+#hand .card .animal{
+  flex:0 0 auto;
+  line-height:1 !important;
+}
+#hand .card .name,
+#hand .card .level{
+  flex:0 0 auto;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+#hand .card .cost{
+  flex:1 1 auto;
+  min-height:0;
+  margin-top:2px !important;
+  overflow:hidden;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+@media(max-width:520px){
+  #hand.hand-fixed{
+    gap:2px !important;
+    height:126px !important;
+    min-height:126px !important;
+    max-height:126px !important;
+  }
+
+  #hand.hand-fixed > .card{
+    padding:3px 1px !important;
+    border-radius:7px !important;
+  }
+
+  #hand .card .animal{
+    font-size:17px !important;
+  }
+  #hand .card .name{
+    font-size:7px !important;
+  }
+  #hand .card .level{
+    font-size:6px !important;
+  }
+  #hand .card .cost{
+    font-size:5.5px !important;
+    line-height:1.05 !important;
+    padding:2px 0 !important;
+  }
+
+  /* 自然現象カードも6枚枠からはみ出さない */
+  #hand .nature-card .animal{
+    font-size:18px !important;
+  }
+  #hand .nature-card .name{
+    font-size:7px !important;
+  }
+  #hand .nature-card .cost{
+    font-size:5px !important;
+  }
+}
+
+
+/* ===== v10 hand/field fit correction ===== */
+
+/* 外枠の高さを「見出し + カード」が確実に収まる高さへ */
+.layout{
+  grid-template-rows:auto 170px 170px auto !important;
+}
+
+/* 大地・手札パネルは中身を枠内に閉じ込める */
+.main > .panel:nth-child(2),
+.main > .panel:nth-child(3){
+  height:170px !important;
+  min-height:170px !important;
+  max-height:170px !important;
+  overflow:hidden !important;
+  display:flex !important;
+  flex-direction:column !important;
+}
+
+/* 大地・手札のカード領域 */
+#field.field-fixed,
+#hand.hand-fixed{
+  flex:1 1 auto !important;
+  height:126px !important;
+  min-height:126px !important;
+  max-height:126px !important;
+  margin:0 !important;
+  padding:0 !important;
+  overflow-x:auto !important;
+  overflow-y:hidden !important;
+}
+
+/* PC/タブレット幅では、手札カードを従来の細い固定幅で左詰め */
+#hand.hand-fixed{
+  display:flex !important;
+  flex-flow:row nowrap !important;
+  align-items:stretch !important;
+  justify-content:flex-start !important;
+  gap:5px !important;
+}
+
+#hand.hand-fixed > .card{
+  flex:0 0 74px !important;
+  width:74px !important;
+  min-width:74px !important;
+  max-width:74px !important;
+  height:126px !important;
+  min-height:126px !important;
+  max-height:126px !important;
+  box-sizing:border-box !important;
+  margin:0 !important;
+  padding:4px 3px !important;
+  overflow:hidden !important;
+}
+
+/* カード内情報をはみ出させない */
+#hand .card .animal{
+  flex:0 0 auto !important;
+  font-size:21px !important;
+  line-height:1 !important;
+}
+#hand .card .name{
+  flex:0 0 auto !important;
+  font-size:9px !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+}
+#hand .card .level{
+  flex:0 0 auto !important;
+  font-size:8px !important;
+  line-height:1 !important;
+}
+#hand .card .cost{
+  flex:1 1 auto !important;
+  min-height:0 !important;
+  margin-top:2px !important;
+  padding:3px 1px !important;
+  font-size:6.5px !important;
+  line-height:1.12 !important;
+  overflow:hidden !important;
+  word-break:break-word !important;
+  overflow-wrap:anywhere !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+}
+
+/* 自然現象も手札枠から出さない */
+#hand .nature-card .animal{font-size:22px !important}
+#hand .nature-card .name{font-size:9px !important}
+#hand .nature-card .cost{font-size:6px !important}
+
+/* スマホは6枚が横1列に必ず収まる */
+@media(max-width:520px){
+  .layout{
+    grid-template-rows:auto 152px 152px auto !important;
+  }
+
+  .main > .panel:nth-child(2),
+  .main > .panel:nth-child(3){
+    height:152px !important;
+    min-height:152px !important;
+    max-height:152px !important;
+  }
+
+  #field.field-fixed,
+  #hand.hand-fixed{
+    height:116px !important;
+    min-height:116px !important;
+    max-height:116px !important;
+  }
+
+  #hand.hand-fixed{
+    display:grid !important;
+    grid-template-columns:repeat(6,minmax(0,1fr)) !important;
+    grid-auto-flow:row !important;
+    gap:2px !important;
+    overflow:hidden !important;
+  }
+
+  #hand.hand-fixed > .card{
+    width:100% !important;
+    min-width:0 !important;
+    max-width:100% !important;
+    height:116px !important;
+    min-height:116px !important;
+    max-height:116px !important;
+    padding:3px 1px !important;
+  }
+
+  #hand .card .animal{font-size:17px !important}
+  #hand .card .name{font-size:7px !important}
+  #hand .card .level{font-size:6px !important}
+  #hand .card .cost{
+    font-size:5.3px !important;
+    line-height:1.02 !important;
+    padding:2px 0 !important;
+  }
+  #hand .nature-card .animal{font-size:17px !important}
+  #hand .nature-card .name{font-size:7px !important}
+  #hand .nature-card .cost{font-size:5px !important}
+}
+
+
+.other-fields-modal-card{
+  width:min(760px,95vw);
+  max-height:86vh;
+  overflow:auto;
+  text-align:left;
+}
+.bot-land{
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:8px;
+  margin-bottom:10px;
+  background:#f8fbf6;
+}
+.bot-land h3{
+  margin:0 0 6px;
+  color:#385d2e;
+  font-size:15px;
+}
+.bot-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+  margin-bottom:6px;
+}
+.bot-meta span{
+  background:#edf2ea;
+  border:1px solid #d9e2d4;
+  border-radius:999px;
+  padding:3px 7px;
+  font-size:10px;
+  font-weight:800;
+}
+.bot-field-cards{
+  display:flex;
+  gap:4px;
+  flex-wrap:wrap;
+}
+.bot-mini-card{
+  width:62px;
+  min-height:78px;
+  border:1px solid #ccd9c6;
+  border-radius:7px;
+  background:#fff;
+  padding:3px;
+  text-align:center;
+  font-size:8px;
+}
+.bot-mini-card.level2{border-color:#b88a3a;background:#fffaf0}
+.bot-mini-card.level3{border-color:#7a4fa3;background:#fbf7ff}
+.bot-mini-card .emoji{font-size:19px;line-height:1.1}
+.bot-mini-card .stars{color:#c38a19;font-weight:900}
+.bot-egg{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-size:20px;
+  margin:0 -7px;
+  z-index:2;
+}
+@media(max-width:520px){
+  .other-fields-modal-card{width:96vw;padding:10px}
+  .bot-mini-card{width:52px;min-height:70px}
+}
+
+
+.bot-mini-card.prey-selectable{
+  outline:3px solid #d05b43;
+  outline-offset:-2px;
+  cursor:pointer;
+  position:relative;
+}
+.bot-mini-card.prey-selectable::after{
+  content:"捕食";
+  position:absolute;
+  top:2px;
+  right:2px;
+  padding:1px 3px;
+  border-radius:999px;
+  background:#d05b43;
+  color:#fff;
+  font-size:6px;
+  font-weight:900;
+}
+
+</style>
+
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div>
+      <div class="title">🌳 命の樹</div>
+      <div class="subtitle">食物連鎖カードゲーム / Prototype ver.0.1</div>
+    </div>
+    <div class="top-actions">
+      <button class="btn primary" onclick="newGame()">NEW GAME</button>
+      <button class="btn" onclick="toggleRules()">RULES</button>
+      <button class="btn warn" onclick="resetGame()">RESET</button>
+    </div>
+  </div>
+
+  <div class="statusbar">
+    <div class="status"><b>ターン</b><span id="turn">1</span></div>
+    <div class="status phase-status"><b>現在フェイズ</b><span id="phaseName">捕食</span></div>
+    <div class="status"><b>動物山札</b><span id="deckCount">35</span></div>
+    <div class="status"><b>自然現象</b><span id="natureDeckCount">18</span></div>
+    <div class="status"><b>手札</b><span id="handCount">0 / 6</span></div>
+    <div class="status"><b>場の動物</b><span id="fieldCount">0</span></div>
+  </div>
+<div class="layout">
+    <div class="main">
+      <div class="panel">
+        <h2>💧 命の泉 <small style="font-weight:400;color:#71806c;">（共有）</small></h2>
+        <div class="resource-row">
+          <div class="resource grass"><small>草</small><div class="num" id="springGrass">0</div></div>
+          <div class="resource water"><small>水</small><div class="num" id="springWater">0</div></div>
+          <div class="resource bug"><small>虫</small><div class="num" id="springBug">0</div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>🌿 大地 <small style="font-weight:400;color:#71806c;">（自分の場）</small></h2>
+        <div id="field" class="cards field-fixed" ondragover="allowFieldDrop(event)" ondragleave="leaveFieldDrop(event)" ondrop="dropOnField(event)"></div>
+      </div>
+
+      <div class="panel">
+        <h2>🖐 手札</h2>
+        <div id="hand" class="cards hand-fixed"></div>
+      </div>
+
+      <div class="panel">
+        <h2>🎒 獲得資源 <small style="font-weight:400;color:#71806c;">（ストック）</small></h2>
+        <div class="resource-row stock-row">
+          <div class="resource grass"><small>草</small><div class="num" id="poolGrass">0</div></div>
+          <div class="resource water"><small>水</small><div class="num" id="poolWater">0</div></div>
+          <div class="resource bug"><small>虫</small><div class="num" id="poolBug">0</div></div>
+          <div class="resource decomposer"><small>分解者</small><div class="num" id="poolDecomposer">0</div></div>
+        </div>
+        <div id="resourceActions" class="pick-grid"></div>
+        <div class="phase-strip compact-phase-strip" id="phaseStrip"></div>
+      </div>
+</div>
+
+    <div class="side">
+      <div class="panel tree">
+        <h2>🌱 命の樹</h2>
+        <div class="tree-wrap">
+          <div class="tree-progress vertical">
+            <div class="tree-fill" id="treeFill"></div>
+          </div>
+          <div class="tree-info">
+            <div class="tree-icon" id="treeIcon">🌱</div>
+            <div class="vp"><span id="vp">0</span> / 10 VP</div>
+          </div>
+        </div>
+      </div>
+      <button class="other-field-btn" type="button" onclick="openOtherFieldsModal()" title="BOTの大地を確認">
+        🌍 他の大地を確認
+      </button>
+<div class="panel" id="rulesPanel" style="display:none">
+        <h2>📖 ルール概要</h2>
+        <div class="help">
+          1ターンは「捕食 → ドロー → ダイスロール → 出現 → 還元 → 発動 → 終了」で進みます。<br><br>
+          1ターン目のドローは1枚。2ターン目以降は場の動物数だけ引きますが、手札は最大6枚です。<br><br>
+          ダイスで命の泉に資源を追加します。出現フェイズでは、命の泉に必要コストがある限り手札から何体でも動物を大地へ出現できます。草・虫・水コストは命の泉から獲得資源へ移します。★コストは自分以外の大地にある動物を捕食して支払い、対象となる他の大地に卵があれば卵を優先して消費します。<br><br>
+          ★コストを持つ動物はターン最初の捕食フェイズで★の数だけ、すべての大地から動物または卵を捕食します。捕食できなければ餓死します。レベル2・レベル3動物は出現時+1VP、廃棄時-1VPです。死亡した動物・卵は🍄分解者としてストックされます。<br><br>
+          還元フェイズでは草・水・虫の同じ資源3個を捨てて1VPを獲得できます。手札3枚を捨てて🍄分解者1、🍄分解者3を消費して自然現象カード1枚を獲得できます。自然現象カードは専用山札18枚で、通常手札と合わせて6枚上限、使用は発動フェイズのみです。未使用資源は次ターンへ持ち越します。10VPで勝利です。<br><br>
+          対戦相手としてBOT1・BOT2が参加します。BOT1は出現可能なカードを優先して展開し、BOT2はレベル1とシカを優先します。あなたのターン終了後にBOT1→BOT2の順で自動行動します。
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <div id="phaseWindow" class="floating-phase-window">
+    <div id="phaseWindowHeader" class="floating-header"
+         onmousedown="phaseDragStartMouse(event)"
+         ontouchstart="phaseDragStartTouch(event)">
+      <span>🎮 フェイズ操作</span>
+      <span class="drag-label">↔ 移動</span>
+    </div>
+    <div class="floating-body">
+      <div id="phaseNotice"></div>
+      <div id="phaseActions" class="actions"></div>
+    </div>
+  </div>
+
+  <div class="panel bottom-log">
+    <h2>📜 ログ</h2>
+    <div class="log" id="log"></div>
+  </div>
+</div>
+
+
+
+<div id="otherFieldsModal" class="modal" aria-hidden="true">
+  <div class="modal-card other-fields-modal-card">
+    <h2>🌍 他の大地</h2>
+    <div id="otherFieldsContent"></div>
+    <button class="btn primary" onclick="closeOtherFieldsModal()">閉じる</button>
+  </div>
+</div>
+
+<div id="diceModal" class="modal" aria-hidden="true">
+  <div class="modal-card">
+    <div class="dice-icons" id="modalDiceIcons"></div>
+    <div class="modal-result" id="modalDiceText"></div>
+    <button class="btn primary" onclick="closeDiceModal()">OK</button>
+  </div>
+</div>
+
+
+<script>
+const animals = {
+  rabbit:{
+    name:"ウサギ", emoji:"🐇", level:1, copies:7, star:0,
+    cost:{grass:1,water:1,bug:0}
+  },
+  squirrel:{
+    name:"リス", emoji:"🐿️", level:1, copies:7, star:0,
+    cost:{grass:1,water:1,bug:0}
+  },
+  frog:{
+    name:"カエル", emoji:"🐸", level:1, copies:7, star:0,
+    cost:{grass:0,water:1,bug:1}
+  },
+  fish:{
+    name:"サカナ", emoji:"🐟", level:1, copies:7, star:0,
+    cost:{grass:0,water:1,bug:1}
+  },
+  mouse:{
+    name:"ネズミ", emoji:"🐁", level:1, copies:7, star:0,
+    cost:{grass:0,water:1,bug:1}
+  },
+
+  snake:{
+    name:"ヘビ", emoji:"🐍", level:2, copies:5, star:1,
+    cost:{grass:0,water:2,bug:2}
+  },
+  raccoon:{
+    name:"アライグマ", emoji:"🦝", level:2, copies:5, star:1,
+    cost:{grass:1,water:2,bug:1}
+  },
+  fox:{
+    name:"キツネ", emoji:"🦊", level:2, copies:5, star:1,
+    cost:{grass:0,water:2,bug:2}
+  },
+  deer:{
+    name:"シカ", emoji:"🦌", level:2, copies:5, star:0,
+    cost:{grass:4,water:1,bug:0}
+  },
+
+  wolf:{
+    name:"オオカミ", emoji:"🐺", level:3, copies:3, star:2,
+    cost:{grass:0,water:3,bug:3}
+  },
+  eagle:{
+    name:"ワシ", emoji:"🦅", level:3, copies:3, star:2,
+    cost:{grass:3,water:3,bug:0}
+  },
+  bear:{
+    name:"クマ", emoji:"🐻", level:3, copies:3, star:2,
+    cost:{grass:2,water:2,bug:2}
+  }
+};
+
+
+const natureCards = {
+  rainy:{name:"雨季",emoji:"🌧️",copies:3,text:"命の泉にある水コストをすべて獲得する"},
+  iceage:{name:"氷河期",emoji:"🧊",copies:3,text:"プレイヤー全員のレベル1カードを廃棄する"},
+  wildfire:{name:"山火事",emoji:"🔥",copies:3,text:"指定したプレイヤーの勝利点を3減らす"},
+  lightning:{name:"落雷",emoji:"⚡",copies:3,text:"自分以外のプレイヤー全員の勝利点を2減らす"},
+  drought:{name:"乾季",emoji:"☀️",copies:3,text:"自分以外のプレイヤー全員の資源をすべて廃棄する"},
+  outbreak:{name:"大発生",emoji:"🦠",copies:3,text:"自分の手札が6枚になるように山札からドローする"}
+};
+
+const phases=["捕食","ドロー","ダイスロール","出現","還元","発動","ターン終了"];
+let state;
+
+function shuffle(a){
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+function makeDeck(){
+  const deck=[];
+  Object.entries(animals).forEach(([type,a])=>{
+    for(let i=0;i<a.copies;i++){
+      deck.push({type,id:`${type}-${i}-${Math.random().toString(36).slice(2)}`});
+    }
+  });
+  return shuffle(deck);
+}
+
+function makeNatureDeck(){
+  const deck=[];
+  Object.entries(natureCards).forEach(([type,c])=>{
+    for(let i=0;i<c.copies;i++){
+      deck.push({
+        kind:"nature",
+        type,
+        id:`nature-${type}-${i}-${Math.random().toString(36).slice(2)}`
+      });
+    }
+  });
+  return shuffle(deck);
+}
+
+function defaultState(){
+  return {
+    deck:makeDeck(),
+    natureDeck:makeNatureDeck(),
+    hand:[],
+    field:[],
+    discard:[],
+    natureDiscard:[],
+    eggs:[],
+    spring:{grass:0,water:0,bug:0},
+    pool:{grass:0,water:0,bug:0,decomposer:0},
+    turn:1,
+    phase:0,
+    vp:0,
+    die:null,
+    gameOver:false,
+    pendingAppearance:null,
+    selectionMode:null,
+    recycleSelection:[],
+    bots:[
+      {
+        id:"bot1",
+        name:"BOT1",
+        strategy:"rush",
+        hand:[],
+        field:[],
+        discard:[],
+        natureDiscard:[],
+        eggs:[],
+        pool:{grass:0,water:0,bug:0,decomposer:0},
+        vp:0
+      },
+      {
+        id:"bot2",
+        name:"BOT2",
+        strategy:"grazer",
+        hand:[],
+        field:[],
+        discard:[],
+        natureDiscard:[],
+        eggs:[],
+        pool:{grass:0,water:0,bug:0,decomposer:0},
+        vp:0
+      }
+    ],
+    predation:{
+      queue:[],
+      cursor:0,
+      currentId:null,
+      remaining:0,
+      done:false
+    }
+  };
+}
+
+function newGame(){
+  state=defaultState();
+
+  drawCards(3,true);
+  for(const bot of state.bots){
+    botDrawCards(bot,3);
+  }
+
+  logMsg("ゲーム開始。あなた・BOT1・BOT2が初期手札3枚を引きました。");
+  beginPredationPhase(false);
+  render();
+}
+
+function resetGame(){ newGame(); }
+
+function toggleRules(){
+  const p=document.getElementById("rulesPanel");
+  if(p) p.style.display=p.style.display==="none"?"block":"none";
+}
+
+function drawCards(n,initial=false){
+  let actual=0;
+  for(let i=0;i<n;i++){
+    if(state.hand.length>=6 || state.deck.length===0) break;
+    const card=state.deck.pop();
+    card.kind="animal";
+    state.hand.push(card);
+    actual++;
+  }
+  if(!initial) logMsg(`${actual}枚ドローしました。`);
+  return actual;
+}
+
+function logMsg(msg){
+  const log=document.getElementById("log");
+  if(!log) return;
+  const div=document.createElement("div");
+  div.textContent=`[T${state?.turn ?? "-"}] ${msg}`;
+  log.appendChild(div);
+  log.scrollTop=log.scrollHeight;
+}
+
+function resourceName(t){
+  return {grass:"草",water:"水",bug:"虫",decomposer:"分解者"}[t] || t;
+}
+
+function resourceText(cost){
+  const arr=[];
+  if(cost.grass) arr.push(`草${cost.grass}`);
+  if(cost.bug) arr.push(`虫${cost.bug}`);
+  if(cost.water) arr.push(`水${cost.water}`);
+  return arr.join("・");
+}
+
+function checkWin(){
+  if(state.vp>=10){
+    state.vp=10;
+    state.gameOver=true;
+    logMsg("命の樹が大樹に成長しました。勝利！");
+    setTimeout(()=>alert("🌳 勝利！\\n命の樹が大樹に成長しました！"),30);
+  }
+}
+
+function changeVP(delta,reason=""){
+  state.vp+=delta;
+  if(reason) logMsg(`${reason}：${delta>0?"+":""}${delta}VP`);
+  checkWin();
+}
+
+function getCardById(id){
+  return state.field.find(c=>c.id===id) || null;
+}
+
+function getFieldIndexById(id){
+  return state.field.findIndex(c=>c.id===id);
+}
+
+function getEggBetween(leftId,rightId){
+  return state.eggs.find(e=>e.leftId===leftId && e.rightId===rightId) || null;
+}
+
+function isEggStillValid(egg){
+  const li=getFieldIndexById(egg.leftId);
+  const ri=getFieldIndexById(egg.rightId);
+  if(li<0 || ri<0 || ri!==li+1) return false;
+  return state.field[li].type===state.field[ri].type;
+}
+
+function addDecomposer(source){
+  state.pool.decomposer++;
+  logMsg(`${source}が死亡し、🍄分解者1としてストックされました。`);
+}
+
+function removeEggById(id,reason="卵"){
+  const idx=state.eggs.findIndex(e=>e.id===id);
+  if(idx<0) return false;
+  state.eggs.splice(idx,1);
+  addDecomposer(reason);
+  return true;
+}
+
+function cleanupInvalidEggs(){
+  const dead=state.eggs.filter(e=>!isEggStillValid(e));
+  if(!dead.length) return;
+  const deadIds=new Set(dead.map(e=>e.id));
+  state.eggs=state.eggs.filter(e=>!deadIds.has(e.id));
+  dead.forEach(()=>addDecomposer("卵トークン"));
+}
+
+function createEggForPair(leftCard,rightCard){
+  if(!leftCard || !rightCard) return;
+  if(leftCard.type!==rightCard.type) return;
+  if(getEggBetween(leftCard.id,rightCard.id)) return;
+
+  state.eggs.push({
+    id:`egg-${Math.random().toString(36).slice(2)}-${Date.now()}`,
+    leftId:leftCard.id,
+    rightId:rightCard.id,
+    type:leftCard.type
+  });
+  logMsg(`${animals[leftCard.type].name}同士が隣接し、🥚卵トークンが出現しました。`);
+}
+
+function createEggsFromNewAppearance(index){
+  const card=state.field[index];
+  if(!card) return;
+  const left=index>0 ? state.field[index-1] : null;
+  const right=index<state.field.length-1 ? state.field[index+1] : null;
+  if(left && left.type===card.type) createEggForPair(left,card);
+  if(right && right.type===card.type) createEggForPair(card,right);
+}
+
+function consumeEggsForStars(count,reason){
+  let consumed=0;
+  while(consumed<count && state.eggs.length>0){
+    const egg=state.eggs[0];
+    removeEggById(egg.id,`${reason}で消費された卵`);
+    consumed++;
+  }
+  return consumed;
+}
+
+function killAnimalById(id,reason){
+  const idx=getFieldIndexById(id);
+  if(idx<0) return null;
+
+  if(state.pendingAppearance && idx < state.pendingAppearance.insertIndex){
+    state.pendingAppearance.insertIndex=Math.max(0,state.pendingAppearance.insertIndex-1);
+  }
+
+  const [card]=state.field.splice(idx,1);
+  const a=animals[card.type];
+  state.discard.push(card);
+
+  if(a.level>=2){
+    changeVP(-1,`${a.name}が廃棄`);
+  }
+
+  addDecomposer(`${a.name}（${reason}）`);
+  cleanupInvalidEggs();
+  return card;
+}
+
+
+function getBotByOwnerId(ownerId){
+  return state.bots.find(b=>b.id===ownerId) || null;
+}
+
+function allOwnerIds(){
+  return ["human", ...state.bots.map(b=>b.id)];
+}
+
+function otherOwnerIds(ownerId){
+  return allOwnerIds().filter(id=>id!==ownerId);
+}
+
+function ownerName(ownerId){
+  if(ownerId==="human") return "あなた";
+  return getBotByOwnerId(ownerId)?.name || ownerId;
+}
+
+function ownerField(ownerId){
+  if(ownerId==="human") return state.field;
+  return getBotByOwnerId(ownerId)?.field || [];
+}
+
+function ownerEggs(ownerId){
+  if(ownerId==="human") return state.eggs;
+  return getBotByOwnerId(ownerId)?.eggs || [];
+}
+
+function ownerCard(ownerId,cardId){
+  return ownerField(ownerId).find(c=>c.id===cardId) || null;
+}
+
+function ownerPreyCount(ownerIds,excludeOwnerId=null,excludeCardId=null){
+  let total=0;
+
+  for(const ownerId of ownerIds){
+    total+=ownerEggs(ownerId).length;
+
+    for(const card of ownerField(ownerId)){
+      if(ownerId===excludeOwnerId && card.id===excludeCardId) continue;
+      total++;
+    }
+  }
+
+  return total;
+}
+
+function removeOwnerEgg(ownerId,eggId,reason){
+  if(ownerId==="human"){
+    return removeEggById(eggId,reason);
+  }
+
+  const bot=getBotByOwnerId(ownerId);
+  if(!bot) return false;
+
+  const idx=bot.eggs.findIndex(e=>e.id===eggId);
+  if(idx<0) return false;
+
+  bot.eggs.splice(idx,1);
+  bot.pool.decomposer++;
+  botLog(bot,`${reason}。🥚が死亡し🍄分解者+1`);
+  return true;
+}
+
+function consumeEggsFromOwners(ownerIds,count,reason){
+  let consumed=0;
+
+  for(const ownerId of ownerIds){
+    while(consumed<count && ownerEggs(ownerId).length>0){
+      const egg=ownerEggs(ownerId)[0];
+      if(!removeOwnerEgg(ownerId,egg.id,reason)) break;
+      consumed++;
+    }
+    if(consumed>=count) break;
+  }
+
+  return consumed;
+}
+
+function killOwnerAnimal(ownerId,cardId,reason){
+  if(ownerId==="human"){
+    return killAnimalById(cardId,reason);
+  }
+
+  const bot=getBotByOwnerId(ownerId);
+  if(!bot) return null;
+  return botKillAnimal(bot,cardId,reason,true);
+}
+
+function chooseAnimalPreyFromOwners(ownerIds,excludeOwnerId=null,excludeCardId=null){
+  const candidates=[];
+
+  for(const ownerId of ownerIds){
+    for(const card of ownerField(ownerId)){
+      if(ownerId===excludeOwnerId && card.id===excludeCardId) continue;
+      candidates.push({ownerId,card});
+    }
+  }
+
+  if(!candidates.length) return null;
+
+  candidates.sort((x,y)=>{
+    const ax=animals[x.card.type];
+    const ay=animals[y.card.type];
+
+    if(ax.level!==ay.level) return ax.level-ay.level;
+    return botAnimalValue(x.card)-botAnimalValue(y.card);
+  });
+
+  return candidates[0];
+}
+
+function isOwnerCardSelectable(ownerId,card){
+  if(!state.selectionMode) return false;
+
+  if(state.selectionMode.type==="appearance"){
+    // 出現時の★コストは「自分以外の場」のみ。
+    return ownerId!=="human";
+  }
+
+  if(state.selectionMode.type==="predation"){
+    // 捕食フェイズは「すべての場」。ただし捕食者自身は対象外。
+    return !(
+      ownerId==="human" &&
+      card.id===state.selectionMode.predatorId
+    );
+  }
+
+  return false;
+}
+
+function availablePreyCount(excludeId=null){
+  // 人間プレイヤーの出現★コストは、自分以外（BOT1/BOT2）の大地のみ対象。
+  return ownerPreyCount(otherOwnerIds("human"));
+}
+
+function canPlay(card){
+  if(state.phase!==3 || state.gameOver) return false;
+  if(card.kind==="nature") return false;
+  if(state.pendingAppearance || state.selectionMode) return false;
+
+  const a=animals[card.type];
+  if(!a) return false;
+  const c=a.cost;
+
+  const resourcesOK=
+    state.spring.grass>=c.grass &&
+    state.spring.water>=c.water &&
+    state.spring.bug>=c.bug;
+
+  const preyOK=availablePreyCount()>=a.star;
+  return resourcesOK && preyOK;
+}
+
+function finalizeAppearance(){
+  const p=state.pendingAppearance;
+  if(!p) return;
+
+  const handIndex=state.hand.findIndex(c=>c.id===p.cardId);
+  if(handIndex<0){
+    state.pendingAppearance=null;
+    state.selectionMode=null;
+    render();
+    return;
+  }
+
+  const card=state.hand[handIndex];
+  const a=animals[card.type];
+  const c=a.cost;
+
+  if(state.spring.grass<c.grass || state.spring.water<c.water || state.spring.bug<c.bug){
+    logMsg(`${a.name}は命の泉の資源不足で出現できませんでした。`);
+    state.pendingAppearance=null;
+    state.selectionMode=null;
+    render();
+    return;
+  }
+
+  state.spring.grass-=c.grass;
+  state.spring.water-=c.water;
+  state.spring.bug-=c.bug;
+
+  state.pool.grass+=c.grass;
+  state.pool.water+=c.water;
+  state.pool.bug+=c.bug;
+
+  state.hand.splice(handIndex,1);
+
+  let insertIndex=Math.max(0,Math.min(p.insertIndex,state.field.length));
+  state.field.splice(insertIndex,0,card);
+
+  // 既存の卵が新しいカードの挿入によって親同士の隣接を失った場合は死亡。
+  cleanupInvalidEggs();
+
+  // 卵は「新しく出現したカード」が同種の隣に置かれた時だけ生成。
+  createEggsFromNewAppearance(insertIndex);
+
+  if(a.level>=2){
+    changeVP(1,`${a.name}（レベル${a.level}）が出現`);
+  }
+
+  const paid=resourceText(c);
+  logMsg(`${a.name}を大地に出現。${paid || "資源0"}を命の泉から獲得資源へ移しました。`);
+
+  state.pendingAppearance=null;
+  state.selectionMode=null;
+  render();
+}
+
+function playCard(index,insertIndex=null){
+  if(state.phase!==3 || state.gameOver) return;
+  if(state.pendingAppearance || state.selectionMode) return;
+
+  const card=state.hand[index];
+  if(!card || !canPlay(card)) return;
+
+  const a=animals[card.type];
+  state.pendingAppearance={
+    cardId:card.id,
+    insertIndex:insertIndex===null ? state.field.length : insertIndex,
+    remainingStars:a.star
+  };
+
+  if(a.star>0){
+    const targetOwners=otherOwnerIds("human");
+    const eatenEggs=consumeEggsFromOwners(
+      targetOwners,
+      a.star,
+      `${a.name}の出現★コストで捕食`
+    );
+    state.pendingAppearance.remainingStars-=eatenEggs;
+  }
+
+  if(state.pendingAppearance.remainingStars<=0){
+    finalizeAppearance();
+    return;
+  }
+
+  state.selectionMode={
+    type:"appearance",
+    predatorCardId:card.id
+  };
+
+  logMsg(`${a.name}の出現★コスト：自分以外の大地から動物を${state.pendingAppearance.remainingStars}体選んでください。`);
+  render();
+
+  // 他プレイヤーの大地から選ぶ必要があるため自動で開く。
+  setTimeout(openOtherFieldsModal,0);
+}
+
+function beginPredationPhase(doRender=true){
+  state.selectionMode=null;
+  state.pendingAppearance=null;
+
+  state.predation={
+    queue:state.field
+      .filter(c=>animals[c.type].star>0)
+      .map(c=>c.id),
+    cursor:0,
+    currentId:null,
+    remaining:0,
+    done:false
+  };
+
+  processPredationQueue(doRender);
+}
+
+function processPredationQueue(doRender=true){
+  const p=state.predation;
+
+  while(p.cursor < p.queue.length){
+    const predatorId=p.queue[p.cursor++];
+    const predator=getCardById(predatorId);
+    if(!predator) continue;
+
+    const a=animals[predator.type];
+    if(a.star<=0) continue;
+
+    p.currentId=predatorId;
+    p.remaining=a.star;
+
+    logMsg(`${a.name}の捕食：すべての大地から★${a.star}を満たします。`);
+
+    const scope=allOwnerIds();
+
+    // 捕食フェイズはすべての場の卵を優先。
+    const eggCount=consumeEggsFromOwners(
+      scope,
+      p.remaining,
+      `${a.name}の捕食フェイズ`
+    );
+    p.remaining-=eggCount;
+
+    if(p.remaining<=0){
+      logMsg(`${a.name}は卵を捕食して生存しました。`);
+      p.currentId=null;
+      continue;
+    }
+
+    const possibleAnimals=ownerPreyCount(
+      scope,
+      "human",
+      predatorId
+    );
+
+    if(possibleAnimals < p.remaining){
+      logMsg(`${a.name}は必要な獲物を確保できず餓死しました。`);
+      killAnimalById(predatorId,"餓死");
+      p.currentId=null;
+      p.remaining=0;
+      continue;
+    }
+
+    state.selectionMode={
+      type:"predation",
+      predatorId
+    };
+
+    if(doRender) render();
+
+    // 他の大地も候補なので確認画面を開く。
+    setTimeout(openOtherFieldsModal,0);
+    return;
+  }
+
+  p.currentId=null;
+  p.remaining=0;
+  p.done=true;
+  state.selectionMode=null;
+  closeOtherFieldsModal();
+  if(doRender) render();
+}
+
+function selectPreyById(ownerId,cardId){
+  if(!state.selectionMode || state.gameOver) return;
+
+  const prey=ownerCard(ownerId,cardId);
+  if(!prey) return;
+
+  if(state.selectionMode.type==="appearance"){
+    const p=state.pendingAppearance;
+    if(!p || p.remainingStars<=0) return;
+
+    // 出現★コストでは自分の大地を捕食できない。
+    if(ownerId==="human") return;
+
+    const preyName=animals[prey.type].name;
+    killOwnerAnimal(ownerId,cardId,"出現コストとして捕食");
+    p.remainingStars--;
+
+    logMsg(`${preyName}（${ownerName(ownerId)}の大地）を出現★コストとして捕食しました。`);
+
+    if(p.remainingStars<=0){
+      closeOtherFieldsModal();
+      finalizeAppearance();
+    }else{
+      render();
+      openOtherFieldsModal();
+    }
+    return;
+  }
+
+  if(state.selectionMode.type==="predation"){
+    const predatorId=state.selectionMode.predatorId;
+    const predator=getCardById(predatorId);
+    const p=state.predation;
+
+    if(!predator) return;
+    if(ownerId==="human" && cardId===predatorId) return;
+
+    const predatorName=animals[predator.type].name;
+    const preyName=animals[prey.type].name;
+
+    killOwnerAnimal(ownerId,cardId,`${predatorName}に捕食`);
+    p.remaining--;
+
+    logMsg(`${predatorName}が${preyName}（${ownerName(ownerId)}の大地）を捕食しました。`);
+
+    if(p.remaining<=0){
+      state.selectionMode=null;
+      p.currentId=null;
+      closeOtherFieldsModal();
+      processPredationQueue(true);
+      return;
+    }
+
+    const possible=ownerPreyCount(
+      allOwnerIds(),
+      "human",
+      predatorId
+    );
+
+    if(possible < p.remaining){
+      logMsg(`${predatorName}は残りの獲物を確保できず餓死しました。`);
+      killAnimalById(predatorId,"餓死");
+      state.selectionMode=null;
+      p.currentId=null;
+      p.remaining=0;
+      closeOtherFieldsModal();
+      processPredationQueue(true);
+      return;
+    }
+
+    render();
+    openOtherFieldsModal();
+  }
+}
+
+function isPreySelectable(card){
+  return isOwnerCardSelectable("human",card);
+}
+
+function phaseAdvance(){
+  if(state.gameOver) return;
+
+  if(state.selectionMode || state.pendingAppearance){
+    logMsg("捕食対象の選択が完了するまでフェイズを進められません。");
+    return;
+  }
+
+  if(state.phase===0 && !state.predation.done){
+    logMsg("捕食フェイズの処理が完了していません。");
+    return;
+  }
+
+  if(state.phase<6){
+    state.recycleSelection=[];
+    state.phase++;
+  }else{
+    // あなたのターン終了後にBOT1→BOT2を自動実行
+    runAllBots();
+
+    if(state.gameOver){
+      render();
+      return;
+    }
+
+    state.turn++;
+    state.recycleSelection=[];
+    state.phase=0;
+    state.die=null;
+
+    logMsg(`あなたのターン${state.turn}を開始します。`);
+    beginPredationPhase(false);
+  }
+
+  render();
+}
+
+function doDraw(){
+  if(state.phase!==1) return;
+
+  const n=state.turn===1 ? 1 : state.field.length;
+  const cap=Math.max(0,6-state.hand.length);
+  const toDraw=Math.min(n,cap);
+
+  if(n===0) logMsg("場に動物がいないためドローは0枚です。");
+  else if(cap===0) logMsg("手札が6枚のためドローできません。");
+
+  drawCards(toDraw);
+  phaseAdvance();
+}
+
+function rollDice(){
+  if(state.phase!==2) return;
+
+  const d=Math.floor(Math.random()*6)+1;
+  state.die=d;
+
+  let add;
+  if(d===1) add={grass:1,water:1,bug:0};
+  else if(d===2) add={grass:0,water:1,bug:1};
+  else if(d===3 || d===5) add={grass:2,water:2,bug:0};
+  else add={grass:0,water:2,bug:2};
+
+  state.spring.grass+=add.grass;
+  state.spring.water+=add.water;
+  state.spring.bug+=add.bug;
+
+  logMsg(`ダイス${d}：命の泉に ${resourceText(add)} を追加。`);
+  render();
+  showDiceModal(d);
+}
+
+function convertResource(type){
+  if(state.phase!==4 || state.pool[type]<3 || state.gameOver) return;
+  state.pool[type]-=3;
+  changeVP(1,`${resourceName(type)}3を還元`);
+  render();
+}
+
+function updateResourceDisplays(){
+  const cap={grass:"Grass",water:"Water",bug:"Bug"};
+  ["grass","water","bug"].forEach(type=>{
+    const springEl=document.getElementById("spring"+cap[type]);
+    const poolEl=document.getElementById("pool"+cap[type]);
+    if(springEl) springEl.textContent=state.spring[type];
+    if(poolEl) poolEl.textContent=state.pool[type];
+  });
+  const dec=document.getElementById("poolDecomposer");
+  if(dec) dec.textContent=state.pool.decomposer;
+}
+
+function cardHTML(card,index,inHand){
+  if(card.kind==="nature"){
+    const n=natureCards[card.type];
+    const recycleMode=inHand && state.phase===4 && !state.gameOver;
+    const recycleSelected=recycleMode && state.recycleSelection.includes(card.id);
+    const usable=inHand && state.phase===5 && !state.gameOver;
+
+    let clickAttr="";
+    if(recycleMode){
+      clickAttr=`onclick="toggleRecycleCard('${card.id}')"`;
+    }else if(usable){
+      clickAttr=`onclick="useNatureCard('${card.id}')"`;
+    }
+
+    return `
+      <div class="card nature-card ${usable?"usable-nature":""} ${recycleSelected?"recycle-selected":""}"
+           draggable="false" ${clickAttr} title="${n.text}">
+        <div class="animal">${n.emoji}</div>
+        <div class="name">${n.name}</div>
+        <div class="level">自然現象</div>
+        <div class="cost">${n.text}</div>
+      </div>`;
+  }
+
+  const a=animals[card.type];
+  const costs=[];
+
+  if(a.star) costs.push(`★${a.star}`);
+  if(a.cost.grass) costs.push(`🌿${a.cost.grass}`);
+  if(a.cost.bug) costs.push(`🐛${a.cost.bug}`);
+  if(a.cost.water) costs.push(`💧${a.cost.water}`);
+
+  const recycleMode=inHand && state.phase===4 && !state.gameOver;
+  const recycleSelected=recycleMode && state.recycleSelection.includes(card.id);
+  const playable=inHand && !recycleMode && canPlay(card);
+  const preySelectable=!inHand && isPreySelectable(card);
+  const activePredator=!inHand &&
+    state.selectionMode?.type==="predation" &&
+    state.selectionMode.predatorId===card.id;
+  const pending=inHand && state.pendingAppearance?.cardId===card.id;
+
+  const dragAttrs=(inHand && !recycleMode)
+    ? `draggable="${playable ? "true" : "false"}"
+       data-hand-index="${index}"
+       ondragstart="handleDragStart(event,${index})"
+       ondragend="handleDragEnd(event)"`
+    : `draggable="false"`;
+
+  let clickAttr="";
+  if(preySelectable){
+    clickAttr=`onclick="selectPreyById('human','${card.id}')"`;
+  }else if(recycleMode){
+    clickAttr=`onclick="toggleRecycleCard('${card.id}')"`;
+  }
+
+  return `
+    <div class="card ${a.level===3?"level3":a.level===2?"level2":""} ${inHand?"draggable-card":""} ${preySelectable?"prey-selectable":""} ${activePredator?"predator-active":""} ${pending?"pending-card":""} ${recycleSelected?"recycle-selected":""}"
+         ${dragAttrs} ${clickAttr}>
+      <div class="animal">${a.emoji}</div>
+      <div class="name">${a.name}</div>
+      <div class="level">${"★".repeat(a.level)}</div>
+      <div class="cost">${costs.join(" ")}</div>
+    </div>`;
+}
+
+function fieldHTML(){
+  if(!state.field.length){
+    return `<div class="empty">まだ動物はいません。</div>`;
+  }
+
+  let html="";
+  for(let i=0;i<state.field.length;i++){
+    const card=state.field[i];
+    html+=cardHTML(card,i,false);
+
+    if(i<state.field.length-1){
+      const right=state.field[i+1];
+      const egg=getEggBetween(card.id,right.id);
+      if(egg){
+        html+=`<div class="egg-token" aria-label="卵トークン" title="卵トークン"><span>🥚</span></div>`;
+      }
+    }
+  }
+  return html;
+}
+
+// ---------- Hand -> field drag / insertion ----------
+let draggedHandIndex=null;
+let fieldInsertPlaceholder=null;
+let fieldInsertIndex=null;
+
+function clearFieldInsertPlaceholder(){
+  if(fieldInsertPlaceholder?.parentNode){
+    fieldInsertPlaceholder.remove();
+  }
+  fieldInsertPlaceholder=null;
+  fieldInsertIndex=null;
+}
+
+function updateFieldInsertPlaceholder(ev){
+  const field=document.getElementById("field");
+  if(!field) return;
+
+  const cards=[...field.querySelectorAll(":scope > .card")];
+  let insertAt=cards.length;
+
+  for(let i=0;i<cards.length;i++){
+    const r=cards[i].getBoundingClientRect();
+    if(ev.clientX < r.left + r.width/2){
+      insertAt=i;
+      break;
+    }
+  }
+
+  if(fieldInsertPlaceholder && fieldInsertIndex===insertAt) return;
+
+  clearFieldInsertPlaceholder();
+
+  const placeholder=document.createElement("div");
+  placeholder.className="field-insert-placeholder";
+  placeholder.setAttribute("aria-hidden","true");
+
+  if(insertAt<cards.length){
+    const targetCard=cards[insertAt];
+    const prev=targetCard.previousElementSibling;
+    if(prev?.classList.contains("egg-token")){
+      field.insertBefore(placeholder,prev);
+    }else{
+      field.insertBefore(placeholder,targetCard);
+    }
+  }else{
+    field.appendChild(placeholder);
+  }
+
+  fieldInsertPlaceholder=placeholder;
+  fieldInsertIndex=insertAt;
+
+  requestAnimationFrame(()=>{
+    if(fieldInsertPlaceholder===placeholder){
+      placeholder.classList.add("open");
+    }
+  });
+}
+
+function handleDragStart(ev,index){
+  const card=state.hand[index];
+  if(!card || !canPlay(card)){
+    ev.preventDefault();
+    return;
+  }
+
+  draggedHandIndex=index;
+  ev.dataTransfer.effectAllowed="move";
+  ev.dataTransfer.setData("text/plain",String(index));
+  ev.currentTarget.classList.add("dragging-card");
+}
+
+function handleDragEnd(ev){
+  ev.currentTarget?.classList.remove("dragging-card");
+  draggedHandIndex=null;
+  document.getElementById("field")?.classList.remove("drop-target");
+  clearFieldInsertPlaceholder();
+}
+
+function allowFieldDrop(ev){
+  if(state.phase!==3 || draggedHandIndex===null || state.selectionMode) return;
+  ev.preventDefault();
+  ev.dataTransfer.dropEffect="move";
+  document.getElementById("field")?.classList.add("drop-target");
+  updateFieldInsertPlaceholder(ev);
+}
+
+function leaveFieldDrop(ev){
+  const field=document.getElementById("field");
+  if(!field) return;
+  if(!field.contains(ev.relatedTarget)){
+    field.classList.remove("drop-target");
+    clearFieldInsertPlaceholder();
+  }
+}
+
+function dropOnField(ev){
+  ev.preventDefault();
+
+  const field=document.getElementById("field");
+  if(!field) return;
+
+  let index=draggedHandIndex;
+  if(index===null){
+    const raw=ev.dataTransfer.getData("text/plain");
+    index=Number(raw);
+  }
+  if(!Number.isInteger(index)) return;
+
+  let insertAt=state.field.length;
+  if(fieldInsertPlaceholder?.parentNode===field){
+    insertAt=0;
+    for(const child of field.children){
+      if(child===fieldInsertPlaceholder) break;
+      if(child.classList.contains("card")) insertAt++;
+    }
+  }
+
+  field.classList.remove("drop-target");
+  clearFieldInsertPlaceholder();
+  playCard(index,insertAt);
+}
+
+
+function toggleRecycleCard(cardId){
+  if(state.phase!==4 || state.gameOver) return;
+
+  const handIndex=state.hand.findIndex(c=>c.id===cardId);
+  if(handIndex<0) return;
+
+  const selectedIndex=state.recycleSelection.indexOf(cardId);
+
+  if(selectedIndex>=0){
+    state.recycleSelection.splice(selectedIndex,1);
+  }else{
+    if(state.recycleSelection.length>=3) return;
+    state.recycleSelection.push(cardId);
+  }
+
+  render();
+}
+
+function recycleHandCards(){
+  if(state.phase!==4 || state.gameOver) return;
+  if(state.hand.length<3) return;
+
+  let idsToDiscard=[];
+
+  if(state.hand.length===3){
+    idsToDiscard=state.hand.map(card=>card.id);
+  }else{
+    if(state.recycleSelection.length!==3){
+      logMsg(`分解する手札を3枚選択してください。現在${state.recycleSelection.length}/3枚です。`);
+      render();
+      return;
+    }
+    idsToDiscard=[...state.recycleSelection];
+  }
+
+  const selectedSet=new Set(idsToDiscard);
+  const discarded=[];
+  const remain=[];
+
+  for(const card of state.hand){
+    if(selectedSet.has(card.id) && discarded.length<3){
+      discarded.push(card);
+    }else{
+      remain.push(card);
+    }
+  }
+
+  if(discarded.length!==3){
+    logMsg("分解処理に失敗しました。選択を解除して、もう一度3枚選んでください。");
+    state.recycleSelection=[];
+    render();
+    return;
+  }
+
+  state.hand=remain;
+  state.discard.push(...discarded);
+  state.pool.decomposer=(state.pool.decomposer || 0)+1;
+  state.recycleSelection=[];
+
+  logMsg(`手札3枚を廃棄：${discarded.map(c=>c.kind==="nature"?natureCards[c.type].name:animals[c.type].name).join("・")} → 🍄分解者1獲得`);
+  render();
+}
+
+
+function acquireNatureCard(){
+  if(state.phase!==4 || state.gameOver) return;
+  if(state.pool.decomposer<3){
+    logMsg("🍄分解者が3未満のため自然現象カードを獲得できません。");
+    return;
+  }
+  if(state.hand.length>=6){
+    logMsg("手札が6枚のため自然現象カードを獲得できません。");
+    return;
+  }
+  if(state.natureDeck.length===0){
+    logMsg("自然現象カードの山札がありません。");
+    return;
+  }
+
+  state.pool.decomposer-=3;
+  const card=state.natureDeck.pop();
+  state.hand.push(card);
+  logMsg(`🍄分解者3を消費し、自然現象「${natureCards[card.type].name}」を獲得しました。`);
+  render();
+}
+
+function discardNatureFromHand(cardId){
+  const index=state.hand.findIndex(c=>c.id===cardId && c.kind==="nature");
+  if(index<0) return null;
+  const [card]=state.hand.splice(index,1);
+  state.natureDiscard.push(card);
+  return card;
+}
+
+function useNatureCard(cardId){
+  if(state.phase!==5 || state.gameOver) return;
+
+  const index=state.hand.findIndex(c=>c.id===cardId && c.kind==="nature");
+  if(index<0) return;
+
+  const card=state.hand[index];
+
+  switch(card.type){
+    case "rainy":{
+      const gained=state.spring.water;
+      state.pool.water+=gained;
+      state.spring.water=0;
+      discardNatureFromHand(cardId);
+      logMsg(`自然現象「雨季」を発動。命の泉の水${gained}をすべて獲得しました。`);
+      break;
+    }
+
+    case "iceage":{
+      const victims=state.field.filter(c=>animals[c.type]?.level===1).map(c=>c.id);
+
+      for(const id of victims){
+        const idx=getFieldIndexById(id);
+        if(idx<0) continue;
+        const [dead]=state.field.splice(idx,1);
+        state.discard.push(dead);
+      }
+
+      // 氷河期では動物・卵とも分解者を発生させない
+      state.eggs=state.eggs.filter(isEggStillValid);
+
+      discardNatureFromHand(cardId);
+      logMsg(`自然現象「氷河期」を発動。自分のレベル1動物${victims.length}体を廃棄しました。対戦相手への処理は今後実装します。`);
+      break;
+    }
+
+    case "wildfire":
+      discardNatureFromHand(cardId);
+      logMsg("自然現象「山火事」を使用。指定プレイヤーのVP-3効果は対戦実装時に追加します。");
+      break;
+
+    case "lightning":
+      discardNatureFromHand(cardId);
+      logMsg("自然現象「落雷」を使用。自分以外の全プレイヤーVP-2効果は対戦実装時に追加します。");
+      break;
+
+    case "drought":
+      discardNatureFromHand(cardId);
+      logMsg("自然現象「乾季」を使用。自分以外の全プレイヤーの資源廃棄効果は対戦実装時に追加します。");
+      break;
+
+    case "outbreak":{
+      discardNatureFromHand(cardId);
+      const before=state.hand.length;
+      drawCards(Math.max(0,6-state.hand.length));
+      const drawn=state.hand.length-before;
+      logMsg(`自然現象「大発生」を発動。通常山札から${drawn}枚ドローし、手札を${state.hand.length}枚にしました。`);
+      break;
+    }
+  }
+
+  render();
+}
+
+
+// =========================
+// BOT対戦処理
+// =========================
+
+function botLog(bot,msg){
+  logMsg(`${bot.name}：${msg}`);
+}
+
+function botDrawCards(bot,n){
+  let actual=0;
+  for(let i=0;i<n;i++){
+    if(bot.hand.length>=6 || state.deck.length===0) break;
+    const card=state.deck.pop();
+    card.kind="animal";
+    bot.hand.push(card);
+    actual++;
+  }
+  return actual;
+}
+
+function botAnimalValue(card){
+  const a=animals[card.type];
+  if(!a) return 999;
+  return a.level*10 + a.star*5 + a.cost.grass+a.cost.water+a.cost.bug;
+}
+
+function botDiscardCostScore(card){
+  if(card.kind==="nature") return -1000;
+  const a=animals[card.type];
+  if(!a) return 0;
+  return (a.star*5)+(a.cost.grass+a.cost.water+a.cost.bug)+(a.level*2);
+}
+
+function botGetFieldIndex(bot,id){
+  return bot.field.findIndex(c=>c.id===id);
+}
+
+function botGetEggBetween(bot,leftId,rightId){
+  return bot.eggs.find(e=>e.leftId===leftId && e.rightId===rightId) || null;
+}
+
+function botEggValid(bot,egg){
+  const li=botGetFieldIndex(bot,egg.leftId);
+  const ri=botGetFieldIndex(bot,egg.rightId);
+  if(li<0 || ri<0 || ri!==li+1) return false;
+  return bot.field[li].type===bot.field[ri].type;
+}
+
+function botCleanupEggs(bot,generateDecomposer=true){
+  const invalid=bot.eggs.filter(e=>!botEggValid(bot,e));
+  if(!invalid.length) return;
+
+  const ids=new Set(invalid.map(e=>e.id));
+  bot.eggs=bot.eggs.filter(e=>!ids.has(e.id));
+
+  if(generateDecomposer){
+    bot.pool.decomposer+=invalid.length;
+  }
+}
+
+function botCreateEgg(bot,left,right){
+  if(!left || !right || left.type!==right.type) return;
+  if(botGetEggBetween(bot,left.id,right.id)) return;
+
+  bot.eggs.push({
+    id:`${bot.id}-egg-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    leftId:left.id,
+    rightId:right.id,
+    type:left.type
+  });
+}
+
+function botCreateEggsAround(bot,index){
+  const card=bot.field[index];
+  if(!card) return;
+
+  const left=index>0 ? bot.field[index-1] : null;
+  const right=index<bot.field.length-1 ? bot.field[index+1] : null;
+
+  if(left?.type===card.type) botCreateEgg(bot,left,card);
+  if(right?.type===card.type) botCreateEgg(bot,card,right);
+}
+
+function botKillAnimal(bot,id,reason,generateDecomposer=true){
+  const idx=botGetFieldIndex(bot,id);
+  if(idx<0) return null;
+
+  const [card]=bot.field.splice(idx,1);
+  bot.discard.push(card);
+
+  const a=animals[card.type];
+  if(a?.level>=2){
+    bot.vp=Math.max(0,bot.vp-1);
+  }
+
+  if(generateDecomposer){
+    bot.pool.decomposer++;
+  }
+
+  botCleanupEggs(bot,generateDecomposer);
+  botLog(bot,`${a?.name || "動物"}が${reason}で廃棄されました。`);
+  return card;
+}
+
+function botConsumeEggs(bot,count,reason){
+  let used=0;
+  while(used<count && bot.eggs.length>0){
+    bot.eggs.shift();
+    bot.pool.decomposer++;
+    used++;
+    botLog(bot,`🥚を${reason}で消費。🍄分解者+1`);
+  }
+  return used;
+}
+
+function botChoosePrey(bot,excludeId=null){
+  const candidates=bot.field.filter(c=>c.id!==excludeId);
+  if(!candidates.length) return null;
+
+  // まずレベル1を優先して捕食。VP損失を避ける。
+  candidates.sort((a,b)=>{
+    const aa=animals[a.type], bb=animals[b.type];
+    if(aa.level!==bb.level) return aa.level-bb.level;
+    return botAnimalValue(a)-botAnimalValue(b);
+  });
+  return candidates[0];
+}
+
+function botFeedPredator(bot,predatorId,stars,reason){
+  let remaining=stars;
+
+  remaining-=botConsumeEggs(bot,remaining,reason);
+
+  while(remaining>0){
+    const prey=botChoosePrey(bot,predatorId);
+    if(!prey) return false;
+    botKillAnimal(bot,prey.id,`${reason}で捕食`,true);
+    remaining--;
+  }
+
+  return true;
+}
+
+function botPredationPhase(bot){
+  const predatorIds=bot.field
+    .filter(c=>animals[c.type]?.star>0)
+    .map(c=>c.id);
+
+  for(const predatorId of predatorIds){
+    const predator=bot.field.find(c=>c.id===predatorId);
+    if(!predator) continue;
+
+    const a=animals[predator.type];
+    const scope=allOwnerIds();
+
+    const possible=ownerPreyCount(scope,bot.id,predatorId);
+
+    if(possible<a.star){
+      botKillAnimal(bot,predatorId,"餓死",true);
+      continue;
+    }
+
+    let remaining=a.star;
+
+    // 捕食フェイズではすべての大地の卵を優先。
+    remaining-=consumeEggsFromOwners(
+      scope,
+      remaining,
+      `${bot.name}の${a.name}の捕食フェイズ`
+    );
+
+    while(remaining>0){
+      const prey=chooseAnimalPreyFromOwners(
+        scope,
+        bot.id,
+        predatorId
+      );
+
+      if(!prey) break;
+
+      const preyName=animals[prey.card.type].name;
+      killOwnerAnimal(
+        prey.ownerId,
+        prey.card.id,
+        `${bot.name}の${a.name}に捕食`
+      );
+      botLog(bot,`${a.name}が${preyName}（${ownerName(prey.ownerId)}）を捕食`);
+      remaining--;
+    }
+
+    if(remaining>0 && bot.field.some(c=>c.id===predatorId)){
+      botKillAnimal(bot,predatorId,"餓死",true);
+    }
+  }
+}
+
+function botCanPlay(bot,card){
+  if(card.kind==="nature") return false;
+  const a=animals[card.type];
+  if(!a) return false;
+
+  const c=a.cost;
+  const resourcesOK=
+    state.spring.grass>=c.grass &&
+    state.spring.water>=c.water &&
+    state.spring.bug>=c.bug;
+
+  // BOTの出現★コストも「自分以外の大地」のみ。
+  const preyOK=ownerPreyCount(otherOwnerIds(bot.id))>=a.star;
+  return resourcesOK && preyOK;
+}
+
+function botPreferredInsertIndex(bot,card){
+  // 同種の塊の末尾に置き、既存卵を壊さず新しい卵を1つ作る。
+  let lastSame=-1;
+  for(let i=0;i<bot.field.length;i++){
+    if(bot.field[i].type===card.type) lastSame=i;
+  }
+  return lastSame>=0 ? lastSame+1 : bot.field.length;
+}
+
+function botAppearancePriority(bot,card){
+  const a=animals[card.type];
+  const cost=a.cost.grass+a.cost.water+a.cost.bug+(a.star*4);
+
+  if(bot.strategy==="rush"){
+    // BOT1：出せる中で軽いカードから出し、出現数を稼ぐ。
+    return cost;
+  }
+
+  // BOT2：レベル1 → シカ → その他レベル2以上
+  let group=2;
+  if(a.level===1) group=0;
+  else if(card.type==="deer") group=1;
+
+  return group*100 + cost;
+}
+
+function botPlayOne(bot,card){
+  const handIndex=bot.hand.findIndex(c=>c.id===card.id);
+  if(handIndex<0 || !botCanPlay(bot,card)) return false;
+
+  const a=animals[card.type];
+
+  // ★コストは「自分以外の大地」から支払う。卵優先。
+  if(a.star>0){
+    const scope=otherOwnerIds(bot.id);
+    const possible=ownerPreyCount(scope);
+
+    if(possible<a.star) return false;
+
+    let remaining=a.star;
+    remaining-=consumeEggsFromOwners(
+      scope,
+      remaining,
+      `${bot.name}の${a.name}出現★コスト`
+    );
+
+    while(remaining>0){
+      const prey=chooseAnimalPreyFromOwners(scope);
+
+      if(!prey) return false;
+
+      const preyName=animals[prey.card.type].name;
+      killOwnerAnimal(
+        prey.ownerId,
+        prey.card.id,
+        `${bot.name}の${a.name}出現★コストで捕食`
+      );
+      botLog(bot,`${a.name}の出現★コストで${preyName}（${ownerName(prey.ownerId)}）を捕食`);
+      remaining--;
+    }
+  }
+
+  // 命の泉から資源を獲得
+  state.spring.grass-=a.cost.grass;
+  state.spring.water-=a.cost.water;
+  state.spring.bug-=a.cost.bug;
+
+  bot.pool.grass+=a.cost.grass;
+  bot.pool.water+=a.cost.water;
+  bot.pool.bug+=a.cost.bug;
+
+  bot.hand.splice(handIndex,1);
+
+  const insertAt=botPreferredInsertIndex(bot,card);
+  bot.field.splice(insertAt,0,card);
+  botCleanupEggs(bot,true);
+  botCreateEggsAround(bot,insertAt);
+
+  if(a.level>=2){
+    bot.vp++;
+    botLog(bot,`${a.name}出現で+1VP（${bot.vp}VP）`);
+  }else{
+    botLog(bot,`${a.name}を出現`);
+  }
+
+  if(bot.vp>=10){
+    state.gameOver=true;
+    logMsg(`🏆 ${bot.name}が10VPに到達して勝利しました。`);
+  }
+
+  return true;
+}
+
+function botAppearancePhase(bot){
+  let safety=30;
+
+  while(safety-- > 0 && !state.gameOver){
+    const playable=bot.hand.filter(card=>botCanPlay(bot,card));
+    if(!playable.length) break;
+
+    playable.sort((a,b)=>botAppearancePriority(bot,a)-botAppearancePriority(bot,b));
+
+    const chosen=playable[0];
+    if(!botPlayOne(bot,chosen)) break;
+  }
+}
+
+function botConvertResources(bot){
+  for(const type of ["grass","water","bug"]){
+    while(bot.pool[type]>=3 && !state.gameOver){
+      bot.pool[type]-=3;
+      bot.vp++;
+      botLog(bot,`${resourceName(type)}3を還元して+1VP（${bot.vp}VP）`);
+
+      if(bot.vp>=10){
+        state.gameOver=true;
+        logMsg(`🏆 ${bot.name}が10VPに到達して勝利しました。`);
+        return;
+      }
+    }
+  }
+}
+
+function botDiscardThreeForDecomposer(bot,cards){
+  if(cards.length<3) return false;
+
+  const ids=new Set(cards.slice(0,3).map(c=>c.id));
+  const discarded=[];
+  const remain=[];
+
+  for(const card of bot.hand){
+    if(ids.has(card.id) && discarded.length<3){
+      discarded.push(card);
+    }else{
+      remain.push(card);
+    }
+  }
+
+  if(discarded.length!==3) return false;
+
+  bot.hand=remain;
+  bot.discard.push(...discarded);
+  bot.pool.decomposer++;
+  botLog(bot,`手札3枚を分解して🍄分解者+1`);
+  return true;
+}
+
+function botManageHandForDecomposer(bot){
+  if(bot.hand.length<3) return;
+
+  if(bot.strategy==="rush"){
+    // BOT1：次ターンの理論ドローで手札6枚を超える場合にだけ分解。
+    // 高コストカードから捨てる。
+    const nextDraw=bot.field.length;
+    while(bot.hand.length>=3 && bot.hand.length+nextDraw>6){
+      const candidates=bot.hand
+        .filter(c=>c.kind!=="nature")
+        .sort((a,b)=>botDiscardCostScore(b)-botDiscardCostScore(a));
+
+      if(candidates.length<3) break;
+      if(!botDiscardThreeForDecomposer(bot,candidates)) break;
+    }
+    return;
+  }
+
+  // BOT2：シカ以外のレベル2以上が3枚以上溜まったら、それらを3枚分解。
+  while(true){
+    const unwanted=bot.hand
+      .filter(c=>{
+        if(c.kind==="nature") return false;
+        const a=animals[c.type];
+        return a && a.level>=2 && c.type!=="deer";
+      })
+      .sort((a,b)=>botDiscardCostScore(b)-botDiscardCostScore(a));
+
+    if(unwanted.length<3) break;
+    if(!botDiscardThreeForDecomposer(bot,unwanted)) break;
+  }
+}
+
+function botAcquireNature(bot){
+  while(bot.pool.decomposer>=3 && bot.hand.length<6 && state.natureDeck.length>0){
+    bot.pool.decomposer-=3;
+    const card=state.natureDeck.pop();
+    bot.hand.push(card);
+    botLog(bot,`🍄3で自然現象「${natureCards[card.type].name}」を獲得`);
+    botUseNatureCard(bot,card.id);
+  }
+}
+
+function botDiscardNature(bot,cardId){
+  const idx=bot.hand.findIndex(c=>c.id===cardId && c.kind==="nature");
+  if(idx<0) return null;
+  const [card]=bot.hand.splice(idx,1);
+  bot.natureDiscard.push(card);
+  return card;
+}
+
+function botUseNatureCard(bot,cardId){
+  const card=bot.hand.find(c=>c.id===cardId && c.kind==="nature");
+  if(!card) return;
+
+  switch(card.type){
+    case "rainy":{
+      const water=state.spring.water;
+      state.spring.water=0;
+      bot.pool.water+=water;
+      botLog(bot,`「雨季」を即使用。水${water}を獲得`);
+      break;
+    }
+
+    case "iceage":{
+      const victims=bot.field.filter(c=>animals[c.type]?.level===1).map(c=>c.id);
+
+      // 氷河期では分解者を出さない
+      for(const id of victims){
+        const idx=botGetFieldIndex(bot,id);
+        if(idx<0) continue;
+        const [dead]=bot.field.splice(idx,1);
+        bot.discard.push(dead);
+      }
+      bot.eggs=bot.eggs.filter(e=>botEggValid(bot,e));
+      botLog(bot,`「氷河期」を即使用。自身のレベル1を${victims.length}体廃棄`);
+      break;
+    }
+
+    case "outbreak":{
+      botDiscardNature(bot,cardId);
+      const n=botDrawCards(bot,Math.max(0,6-bot.hand.length));
+      botLog(bot,`「大発生」を即使用。${n}枚ドロー`);
+      return;
+    }
+
+    case "wildfire":
+      botLog(bot,"「山火事」を即使用（対人VP-3は後で実装）");
+      break;
+    case "lightning":
+      botLog(bot,"「落雷」を即使用（対人VP-2は後で実装）");
+      break;
+    case "drought":
+      botLog(bot,"「乾季」を即使用（対人資源廃棄は後で実装）");
+      break;
+  }
+
+  botDiscardNature(bot,cardId);
+}
+
+function botUseAllNature(bot){
+  let safety=20;
+  while(safety-- > 0){
+    const nature=bot.hand.find(c=>c.kind==="nature");
+    if(!nature) break;
+    botUseNatureCard(bot,nature.id);
+  }
+}
+
+function botRollDice(bot){
+  const d=Math.floor(Math.random()*6)+1;
+  let add;
+
+  if(d===1) add={grass:1,water:1,bug:0};
+  else if(d===2) add={grass:0,water:1,bug:1};
+  else if(d===3 || d===5) add={grass:2,water:2,bug:0};
+  else add={grass:0,water:2,bug:2};
+
+  state.spring.grass+=add.grass;
+  state.spring.water+=add.water;
+  state.spring.bug+=add.bug;
+
+  botLog(bot,`ダイス${d} → 命の泉に${resourceText(add)}追加`);
+}
+
+function runBotTurn(bot){
+  if(state.gameOver) return;
+
+  botLog(bot,`ターン${state.turn}開始`);
+
+  // 1 捕食
+  botPredationPhase(bot);
+
+  // 2 ドロー
+  const drawCount=state.turn===1 ? 1 : bot.field.length;
+  const drawn=botDrawCards(bot,drawCount);
+  botLog(bot,`${drawn}枚ドロー（手札${bot.hand.length}）`);
+
+  // 3 ダイス
+  botRollDice(bot);
+
+  // 4 出現
+  botAppearancePhase(bot);
+
+  // 5 還元
+  botConvertResources(bot);
+  botManageHandForDecomposer(bot);
+  botAcquireNature(bot);
+
+  // 6 発動
+  botUseAllNature(bot);
+
+  botLog(bot,`ターン終了：${bot.vp}VP / 動物${bot.field.length} / 手札${bot.hand.length}`);
+}
+
+function runAllBots(){
+  for(const bot of state.bots){
+    if(state.gameOver) break;
+    runBotTurn(bot);
+  }
+}
+
+function botMiniCardHTML(card,ownerId){
+  const a=animals[card.type];
+  const selectable=isOwnerCardSelectable(ownerId,card);
+  const clickAttr=selectable
+    ? `onclick="selectPreyById('${ownerId}','${card.id}')"`
+    : "";
+
+  return `
+    <div class="bot-mini-card ${a.level===3?"level3":a.level===2?"level2":""} ${selectable?"prey-selectable":""}" ${clickAttr}>
+      <div class="emoji">${a.emoji}</div>
+      <div>${a.name}</div>
+      <div class="stars">${"★".repeat(a.level)}</div>
+    </div>`;
+}
+
+function botFieldHTML(bot){
+  if(!bot.field.length) return `<div class="empty">動物はいません。</div>`;
+
+  let html=`<div class="bot-field-cards">`;
+  for(let i=0;i<bot.field.length;i++){
+    const card=bot.field[i];
+    html+=botMiniCardHTML(card,bot.id);
+
+    if(i<bot.field.length-1){
+      const right=bot.field[i+1];
+      if(botGetEggBetween(bot,card.id,right.id)){
+        html+=`<span class="bot-egg">🥚</span>`;
+      }
+    }
+  }
+  html+=`</div>`;
+  return html;
+}
+
+function openOtherFieldsModal(){
+  const modal=document.getElementById("otherFieldsModal");
+  const content=document.getElementById("otherFieldsContent");
+  if(!modal || !content) return;
+
+  let selectionGuide="";
+  if(state.selectionMode?.type==="appearance"){
+    selectionGuide=`<div class="notice">出現★コスト：赤枠の動物を選択してください。自分の大地は対象外です。</div>`;
+  }else if(state.selectionMode?.type==="predation"){
+    selectionGuide=`<div class="notice">捕食フェイズ：他の大地の赤枠動物を選べます。自分の大地を選ぶ場合はこの画面を閉じて大地のカードを選択してください。</div>`;
+  }
+
+  content.innerHTML=selectionGuide + state.bots.map(bot=>`
+    <div class="bot-land">
+      <h3>${bot.name} ${bot.strategy==="rush"?"（出現優先型）":"（レベル1・シカ優先型）"}</h3>
+      <div class="bot-meta">
+        <span>VP ${bot.vp}/10</span>
+        <span>手札 ${bot.hand.length}/6</span>
+        <span>動物 ${bot.field.length}</span>
+        <span>🥚 ${bot.eggs.length}</span>
+        <span>🌿 ${bot.pool.grass}</span>
+        <span>💧 ${bot.pool.water}</span>
+        <span>🐛 ${bot.pool.bug}</span>
+        <span>🍄 ${bot.pool.decomposer}</span>
+      </div>
+      ${botFieldHTML(bot)}
+    </div>
+  `).join("");
+
+  modal.classList.add("show");
+  modal.setAttribute("aria-hidden","false");
+}
+
+function closeOtherFieldsModal(){
+  const modal=document.getElementById("otherFieldsModal");
+  if(!modal) return;
+  modal.classList.remove("show");
+  modal.setAttribute("aria-hidden","true");
+}
+
+// ---------- Render ----------
+function render(){
+  if(!state) return;
+
+  document.getElementById("turn").textContent=state.turn;
+  document.getElementById("phaseName").textContent=phases[state.phase];
+  document.getElementById("deckCount").textContent=state.deck.length;
+  document.getElementById("natureDeckCount").textContent=state.natureDeck.length;
+  document.getElementById("handCount").textContent=`${state.hand.length} / 6`;
+  document.getElementById("fieldCount").textContent=state.field.length;
+
+  updateResourceDisplays();
+
+  document.getElementById("vp").textContent=state.vp;
+  document.getElementById("treeFill").style.height=Math.max(0,Math.min(100,state.vp*10))+"%";
+  document.getElementById("treeIcon").textContent=
+    state.vp>=10?"🌳":state.vp>=7?"🌲":state.vp>=4?"🌿":state.vp>=1?"🌱":"🌰";
+
+  document.getElementById("phaseStrip").innerHTML=phases.map((p,i)=>
+    `<div class="phase ${i===state.phase?"active":""}">${i+1}<br>${p}</div>`
+  ).join("");
+
+  const hand=document.getElementById("hand");
+  hand.innerHTML=state.hand.length
+    ? state.hand.map((c,i)=>cardHTML(c,i,true)).join("")
+    : `<div class="empty">手札はありません。</div>`;
+
+  document.getElementById("field").innerHTML=fieldHTML();
+
+  renderPhaseActions();
+}
+
+function renderPhaseActions(){
+  const notice=document.getElementById("phaseNotice");
+  const acts=document.getElementById("phaseActions");
+  notice.innerHTML="";
+  acts.innerHTML="";
+
+  if(state.gameOver){
+    notice.innerHTML=`<div class="notice">🌳 命の樹が大樹に成長しました。ゲーム終了です。</div>`;
+    acts.innerHTML=`<button class="action-btn" onclick="newGame()">もう一度遊ぶ</button>`;
+    return;
+  }
+
+  if(state.selectionMode?.type==="appearance"){
+    const p=state.pendingAppearance;
+    const card=state.hand.find(c=>c.id===p?.cardId);
+    const name=card ? animals[card.type].name : "動物";
+    notice.innerHTML=`<div class="notice">🍴 ${name}の出現★コスト：自分以外の大地から赤枠の動物を${p?.remainingStars ?? 0}体選んでください。対象範囲の卵は自動で優先消費されます。</div>`;
+    return;
+  }
+
+  if(state.selectionMode?.type==="predation"){
+    const predator=getCardById(state.selectionMode.predatorId);
+    const name=predator ? animals[predator.type].name : "捕食者";
+    notice.innerHTML=`<div class="notice">🍴 ${name}の捕食：赤枠の動物から${state.predation.remaining}体を選んでください。卵は自動で優先消費されます。</div>`;
+    return;
+  }
+
+  switch(state.phase){
+    case 0:
+      if(state.predation.done){
+        notice.innerHTML=`<div class="notice">捕食フェイズ完了。★コストを持つ動物は必要な捕食を終えました。</div>`;
+        acts.innerHTML=`<button class="action-btn secondary" onclick="phaseAdvance()">ドローフェイズへ</button>`;
+      }else{
+        notice.innerHTML=`<div class="notice">捕食処理中です。</div>`;
+      }
+      break;
+
+    case 1:{
+      const n=state.turn===1?1:state.field.length;
+      notice.innerHTML=`<div class="notice">このターンは最大${Math.min(n,Math.max(0,6-state.hand.length))}枚ドローします。</div>`;
+      acts.innerHTML=`<button class="action-btn" onclick="doDraw()">ドローする</button>`;
+      break;
+    }
+
+    case 2:
+      notice.innerHTML=`<div class="notice">6面ダイスを振り、命の泉に資源を追加します。</div>`;
+      acts.innerHTML=state.die===null
+        ? `<button class="action-btn" onclick="rollDice()">🎲 ダイスを振る</button>`
+        : `<button class="action-btn secondary" onclick="phaseAdvance()">出現フェイズへ</button>`;
+      break;
+
+    case 3:
+      notice.innerHTML=`<div class="notice">手札から動物を大地へドラッグしてください。草・虫・水は命の泉から取得します。★コストは自分以外の大地から卵→動物の順で捕食して支払います。</div>`;
+      acts.innerHTML=`<button class="action-btn secondary" onclick="phaseAdvance()">出現を終了</button>`;
+      break;
+
+    case 4:{
+      const canRecycle = state.hand.length>=3;
+      const canNature = state.pool.decomposer>=3 && state.hand.length<6 && state.natureDeck.length>0;
+
+      let recycleGuide;
+      if(state.hand.length<3){
+        recycleGuide="手札が3枚未満のため分解できません。";
+      }else if(state.hand.length===3){
+        recycleGuide="手札3枚をそのまま分解できます。";
+      }else{
+        recycleGuide=`捨てる手札を3枚選択してから「分解する」を押してください。選択中：${state.recycleSelection.length}/3枚`;
+      }
+
+      notice.innerHTML=`<div class="notice">同じ資源3個→1VP。手札3枚→🍄1。🍄3→自然現象1枚。${recycleGuide}</div>`;
+      acts.innerHTML=`
+        <button class="action-btn special" ${state.pool.grass<3?"disabled":""} onclick="convertResource('grass')">草3 → 1VP</button>
+        <button class="action-btn special" ${state.pool.water<3?"disabled":""} onclick="convertResource('water')">水3 → 1VP</button>
+        <button class="action-btn special" ${state.pool.bug<3?"disabled":""} onclick="convertResource('bug')">虫3 → 1VP</button>
+        <button id="recycleButton" class="action-btn" ${canRecycle?"":"disabled"} onclick="recycleHandCards()">手札3枚を分解 → 🍄1</button>
+        <button class="action-btn" ${canNature?"":"disabled"} onclick="acquireNatureCard()">🍄3 → 自然現象1枚</button>
+        <button class="action-btn secondary" onclick="phaseAdvance()">還元を終了</button>`;
+      break;
+    }
+
+    case 5:
+      notice.innerHTML=`<div class="notice">発動フェイズ：手札の自然現象カードをクリックすると使用できます。使用後は自然現象の捨て札へ移ります。</div>`;
+      acts.innerHTML=`<button class="action-btn secondary" onclick="phaseAdvance()">発動を終了</button>`;
+      break;
+
+    case 6:
+      notice.innerHTML=`<div class="notice">ターンを終了します。獲得資源と命の泉の資源は持ち越します。</div>`;
+      acts.innerHTML=`<button class="action-btn end" onclick="phaseAdvance()">ターン終了</button>`;
+      break;
+  }
+}
+
+function diceDescription(d){
+  if(d===1) return "草1・水1";
+  if(d===2) return "虫1・水1";
+  if(d===3 || d===5) return "草2・水2";
+  return "虫2・水2";
+}
+
+function showDiceModal(d){
+  const icons={
+    1:["🌿","💧"],
+    2:["🐛","💧"],
+    3:["🌿","🌿","💧","💧"],
+    4:["🐛","🐛","💧","💧"],
+    5:["🌿","🌿","💧","💧"],
+    6:["🐛","🐛","💧","💧"]
+  };
+
+  document.getElementById("modalDiceIcons").innerHTML=
+    icons[d].map(icon=>`<span>${icon}</span>`).join("");
+  document.getElementById("modalDiceText").textContent=
+    `命の泉に ${diceDescription(d)} を追加`;
+
+  const modal=document.getElementById("diceModal");
+  modal.classList.add("show");
+  modal.setAttribute("aria-hidden","false");
+}
+
+function closeDiceModal(){
+  const modal=document.getElementById("diceModal");
+  modal.classList.remove("show");
+  modal.setAttribute("aria-hidden","true");
+}
+
+// ---------- Floating phase window drag ----------
+let phaseDragActive=false;
+let phaseDragOffsetX=0;
+let phaseDragOffsetY=0;
+
+function phaseDragPrepare(clientX,clientY){
+  const win=document.getElementById("phaseWindow");
+  if(!win) return;
+
+  const rect=win.getBoundingClientRect();
+  phaseDragActive=true;
+  phaseDragOffsetX=clientX-rect.left;
+  phaseDragOffsetY=clientY-rect.top;
+
+  win.style.left=rect.left+"px";
+  win.style.top=rect.top+"px";
+  win.style.right="auto";
+  win.style.bottom="auto";
+}
+
+function phaseDragMove(clientX,clientY){
+  if(!phaseDragActive) return;
+
+  const win=document.getElementById("phaseWindow");
+  if(!win) return;
+
+  const maxX=Math.max(0,window.innerWidth-win.offsetWidth);
+  const maxY=Math.max(0,window.innerHeight-win.offsetHeight);
+
+  const x=Math.max(0,Math.min(maxX,clientX-phaseDragOffsetX));
+  const y=Math.max(0,Math.min(maxY,clientY-phaseDragOffsetY));
+
+  win.style.left=x+"px";
+  win.style.top=y+"px";
+}
+
+function phaseDragStartMouse(e){
+  if(e.button!==0) return;
+  phaseDragPrepare(e.clientX,e.clientY);
+  e.preventDefault();
+}
+
+function phaseDragStartTouch(e){
+  if(!e.touches || e.touches.length!==1) return;
+  const t=e.touches[0];
+  phaseDragPrepare(t.clientX,t.clientY);
+  e.preventDefault();
+}
+
+function phaseDragStop(){
+  phaseDragActive=false;
+}
+
+document.addEventListener("mousemove",e=>{
+  if(!phaseDragActive) return;
+  phaseDragMove(e.clientX,e.clientY);
+  e.preventDefault();
+},{passive:false});
+
+document.addEventListener("mouseup",phaseDragStop);
+
+document.addEventListener("touchmove",e=>{
+  if(!phaseDragActive || !e.touches || e.touches.length!==1) return;
+  const t=e.touches[0];
+  phaseDragMove(t.clientX,t.clientY);
+  e.preventDefault();
+},{passive:false});
+
+document.addEventListener("touchend",phaseDragStop);
+document.addEventListener("touchcancel",phaseDragStop);
+
+window.addEventListener("load",newGame);
+</script>
+
+</body>
+</html>
