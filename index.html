@@ -1401,6 +1401,313 @@ button:disabled{opacity:.4;cursor:not-allowed}
   }
 }
 
+
+/* v30 smartphone outer-frame compression + horizontal costs */
+@media (max-width:600px) and (orientation:portrait){
+
+  /* 外側グリッドの大地・手札行そのものを縮める */
+  .layout{
+    grid-template-rows:auto 104px 104px auto !important;
+    gap:4px !important;
+  }
+
+  /* v10で152px固定されていた外枠を直接上書き */
+  .main > .panel:nth-child(2),
+  .main > .panel:nth-child(3){
+    height:104px !important;
+    min-height:104px !important;
+    max-height:104px !important;
+    padding:5px !important;
+    overflow:hidden !important;
+  }
+
+  /* 見出しを詰める */
+  .main > .panel:nth-child(2) h2,
+  .main > .panel:nth-child(3) h2{
+    margin:0 0 3px !important;
+    line-height:1.05 !important;
+    font-size:11px !important;
+  }
+
+  /* カード領域 */
+  #field.field-fixed,
+  #hand.hand-fixed{
+    height:78px !important;
+    min-height:78px !important;
+    max-height:78px !important;
+    flex:0 0 78px !important;
+    padding:0 !important;
+    margin:0 !important;
+  }
+
+  #hand.hand-fixed{
+    display:grid !important;
+    grid-template-columns:repeat(6,minmax(0,1fr)) !important;
+    gap:2px !important;
+    overflow:hidden !important;
+  }
+
+  #hand.hand-fixed > .card{
+    width:100% !important;
+    min-width:0 !important;
+    max-width:100% !important;
+    height:74px !important;
+    min-height:74px !important;
+    max-height:74px !important;
+    padding:2px 1px !important;
+    gap:1px !important;
+  }
+
+  #field.field-fixed > .card{
+    flex:0 0 56px !important;
+    width:56px !important;
+    min-width:56px !important;
+    max-width:56px !important;
+    height:74px !important;
+    min-height:74px !important;
+    max-height:74px !important;
+    padding:2px 1px !important;
+    gap:1px !important;
+  }
+
+  /* 絵・名前・レベルを圧縮 */
+  #hand .card .animal,
+  #field .card .animal{
+    font-size:16px !important;
+    line-height:16px !important;
+    margin:0 !important;
+  }
+
+  #hand .card .name,
+  #field .card .name{
+    font-size:7px !important;
+    line-height:1 !important;
+    margin:0 !important;
+    white-space:nowrap !important;
+  }
+
+  #hand .card .level,
+  #field .card .level{
+    font-size:6px !important;
+    line-height:1 !important;
+    margin:0 !important;
+  }
+
+  /* コストは絶対に横1列。折り返さない */
+  #hand .card .cost,
+  #field .card .cost{
+    display:block !important;
+    flex:0 0 auto !important;
+    width:100% !important;
+    max-width:100% !important;
+    height:auto !important;
+    min-height:0 !important;
+    max-height:none !important;
+    padding:1px 0 !important;
+    margin:0 !important;
+    font-size:5.5px !important;
+    line-height:1 !important;
+    white-space:nowrap !important;
+    word-break:normal !important;
+    overflow-wrap:normal !important;
+    overflow:hidden !important;
+    text-overflow:clip !important;
+    text-align:center !important;
+  }
+
+  /* 自然現象・ハンターは説明をポップアップに任せる */
+  #hand .nature-card .cost,
+  #field .nature-card .cost,
+  #hand .hunter-card .cost,
+  #field .hunter-card .cost{
+    display:none !important;
+  }
+
+  /* ⓘボタンもさらに省スペース */
+  .card-info-btn{
+    width:15px !important;
+    height:15px !important;
+    min-width:15px !important;
+    min-height:15px !important;
+    font-size:9px !important;
+    line-height:13px !important;
+    top:1px !important;
+    right:1px !important;
+  }
+
+  /* 獲得資源欄の上余白を削る */
+  .main > .panel:nth-child(4){
+    margin-top:0 !important;
+  }
+}
+
+
+/* v31 smartphone: compact acquired-resources panel itself */
+@media (max-width:600px) and (orientation:portrait){
+
+  /* 獲得資源パネルそのもの */
+  .main > .panel:nth-child(4){
+    padding:4px !important;
+    min-height:0 !important;
+    height:auto !important;
+    max-height:none !important;
+    overflow:visible !important;
+    margin:0 !important;
+  }
+
+  .main > .panel:nth-child(4) h2{
+    font-size:10px !important;
+    line-height:1 !important;
+    margin:0 0 3px !important;
+  }
+
+  .main > .panel:nth-child(4) h2 small{
+    font-size:7px !important;
+  }
+
+  /* 草・水・虫・分解者を低くする */
+  .main > .panel:nth-child(4) .resource-row.stock-row{
+    display:grid !important;
+    grid-template-columns:repeat(4,minmax(0,1fr)) !important;
+    gap:2px !important;
+    margin:0 !important;
+  }
+
+  .main > .panel:nth-child(4) .resource{
+    min-height:0 !important;
+    height:34px !important;
+    padding:2px 1px !important;
+    border-radius:6px !important;
+    display:flex !important;
+    flex-direction:column !important;
+    align-items:center !important;
+    justify-content:center !important;
+    line-height:1 !important;
+  }
+
+  .main > .panel:nth-child(4) .resource small{
+    font-size:7px !important;
+    line-height:1 !important;
+    margin:0 !important;
+  }
+
+  .main > .panel:nth-child(4) .resource .num{
+    font-size:13px !important;
+    line-height:1 !important;
+    margin-top:2px !important;
+  }
+
+  /* 還元フェイズで現れる資源選択ボタンも低く */
+  #resourceActions.pick-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+    gap:2px !important;
+    margin-top:3px !important;
+  }
+
+  #resourceActions .pick,
+  #resourceActions button{
+    min-height:0 !important;
+    padding:3px 1px !important;
+    font-size:7px !important;
+    line-height:1.05 !important;
+    border-radius:5px !important;
+  }
+
+  /* フェイズ進行表も資源欄の中で低く1列維持 */
+  .main > .panel:nth-child(4) .compact-phase-strip{
+    grid-template-columns:repeat(7,minmax(0,1fr)) !important;
+    gap:1px !important;
+    margin-top:3px !important;
+  }
+
+  .main > .panel:nth-child(4) .compact-phase-strip .phase{
+    min-width:0 !important;
+    padding:2px 0 !important;
+    font-size:5.5px !important;
+    line-height:1 !important;
+    border-radius:4px !important;
+    white-space:nowrap !important;
+    overflow:hidden !important;
+  }
+
+  /* 資源欄の右にある「他の大地」も余計に縦長にしない */
+  .side > .other-field-btn{
+    grid-row:4 !important;
+    min-height:0 !important;
+    height:100% !important;
+    padding:4px 2px !important;
+    font-size:8px !important;
+    line-height:1.15 !important;
+  }
+
+  /* 第4行は内容分だけ */
+  .layout{
+    grid-template-rows:auto 104px 104px auto !important;
+  }
+}
+
+
+/* v32: smartphone acquired resources = true single-line layout */
+@media (max-width:600px) and (orientation:portrait){
+
+  .main > .panel:nth-child(4){
+    padding:3px 4px !important;
+  }
+
+  .main > .panel:nth-child(4) h2{
+    margin:0 0 2px !important;
+  }
+
+  .main > .panel:nth-child(4) .resource-row.stock-row{
+    display:grid !important;
+    grid-template-columns:repeat(4,minmax(0,1fr)) !important;
+    gap:2px !important;
+    margin:0 !important;
+  }
+
+  /* 「草 0」「水 0」「虫 0」「分解者 0」を各マス内で横1列 */
+  .main > .panel:nth-child(4) .resource{
+    height:22px !important;
+    min-height:22px !important;
+    max-height:22px !important;
+    padding:1px 2px !important;
+    display:flex !important;
+    flex-direction:row !important;
+    flex-wrap:nowrap !important;
+    align-items:center !important;
+    justify-content:center !important;
+    gap:3px !important;
+    white-space:nowrap !important;
+    overflow:hidden !important;
+  }
+
+  .main > .panel:nth-child(4) .resource small{
+    display:inline !important;
+    margin:0 !important;
+    padding:0 !important;
+    font-size:8px !important;
+    line-height:1 !important;
+    white-space:nowrap !important;
+  }
+
+  .main > .panel:nth-child(4) .resource .num{
+    display:inline !important;
+    margin:0 !important;
+    padding:0 !important;
+    font-size:11px !important;
+    line-height:1 !important;
+    white-space:nowrap !important;
+  }
+
+  #resourceActions.pick-grid{
+    margin-top:2px !important;
+  }
+
+  .main > .panel:nth-child(4) .compact-phase-strip{
+    margin-top:2px !important;
+  }
+}
+
 </style>
 
 </head>
@@ -3062,9 +3369,9 @@ function cardInfoData(card){
   const a=animals[card.type];
   const costs=[];
   if(a.star) costs.push(`★${a.star}`);
-  if(a.cost.grass) costs.push(`🌿${a.cost.grass}`);
-  if(a.cost.bug) costs.push(`🐛${a.cost.bug}`);
-  if(a.cost.water) costs.push(`💧${a.cost.water}`);
+  if(a.cost.grass) costs.push(`草${a.cost.grass}`);
+  if(a.cost.bug) costs.push(`虫${a.cost.bug}`);
+  if(a.cost.water) costs.push(`水${a.cost.water}`);
 
   let text=`出現コスト：${costs.join(" ") || "なし"}`;
   if(a.level>=2){
@@ -3191,9 +3498,9 @@ function cardHTML(card,index,inHand){
   const costs=[];
 
   if(a.star) costs.push(`★${a.star}`);
-  if(a.cost.grass) costs.push(`🌿${a.cost.grass}`);
-  if(a.cost.bug) costs.push(`🐛${a.cost.bug}`);
-  if(a.cost.water) costs.push(`💧${a.cost.water}`);
+  if(a.cost.grass) costs.push(`草${a.cost.grass}`);
+  if(a.cost.bug) costs.push(`虫${a.cost.bug}`);
+  if(a.cost.water) costs.push(`水${a.cost.water}`);
 
   const recycleMode=inHand && state.phase===4 && !state.gameOver;
   const recycleSelected=recycleMode && state.recycleSelection.includes(card.id);
