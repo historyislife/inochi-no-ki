@@ -1247,6 +1247,160 @@ button:disabled{opacity:.4;cursor:not-allowed}
   }
 }
 
+
+/* v28 smartphone: short cards + popup descriptions */
+.card-info-modal-card{
+  width:min(330px,88vw);
+  position:relative;
+  text-align:center;
+  padding:16px 12px 12px;
+}
+.card-info-close{
+  position:absolute;
+  right:7px;
+  top:5px;
+  width:28px;
+  height:28px;
+  border:0;
+  border-radius:50%;
+  background:#e8eee5;
+  font-size:18px;
+  font-weight:900;
+  cursor:pointer;
+}
+.card-info-emoji{font-size:38px;line-height:1;margin-bottom:5px}
+.card-info-name{font-size:18px;font-weight:900;margin-bottom:3px}
+.card-info-level{font-size:12px;color:#b47c13;font-weight:900;margin-bottom:7px}
+.card-info-cost{font-size:13px;font-weight:800;margin-bottom:8px}
+.card-info-text{font-size:12px;line-height:1.55;text-align:left;background:#f5f8f3;border-radius:8px;padding:8px}
+
+@media (max-width:600px) and (orientation:portrait){
+  /* 実際に固定高を指定しているセレクタを上書き */
+  #field.field-fixed,
+  #hand.hand-fixed{
+    height:82px !important;
+    min-height:82px !important;
+    max-height:82px !important;
+    padding:0 !important;
+    overflow-x:auto !important;
+    overflow-y:hidden !important;
+  }
+
+  #hand.hand-fixed{
+    display:grid !important;
+    grid-template-columns:repeat(6,minmax(0,1fr)) !important;
+    grid-auto-flow:row !important;
+    gap:2px !important;
+  }
+
+  #hand.hand-fixed > .card{
+    width:100% !important;
+    min-width:0 !important;
+    max-width:100% !important;
+    height:78px !important;
+    min-height:78px !important;
+    max-height:78px !important;
+    padding:3px 1px !important;
+  }
+
+  #field.field-fixed > .card{
+    flex:0 0 58px !important;
+    width:58px !important;
+    min-width:58px !important;
+    max-width:58px !important;
+    height:78px !important;
+    min-height:78px !important;
+    max-height:78px !important;
+    padding:3px 1px !important;
+  }
+
+  /* カード面には説明文を置かない。アイコン・名前・星・コストだけ */
+  #hand .card .animal,
+  #field .card .animal{
+    font-size:17px !important;
+    line-height:17px !important;
+    margin:0 !important;
+  }
+  #hand .card .name,
+  #field .card .name{
+    font-size:7px !important;
+    line-height:1 !important;
+    margin:1px 0 !important;
+  }
+  #hand .card .level,
+  #field .card .level{
+    font-size:6px !important;
+    line-height:1 !important;
+    margin:0 !important;
+  }
+  #hand .card .cost,
+  #field .card .cost{
+    font-size:6px !important;
+    line-height:1.05 !important;
+    padding:1px 0 !important;
+    margin:0 !important;
+    overflow:hidden !important;
+    max-height:15px !important;
+  }
+
+  /* 自然現象・ハンターは長い効果文をカード上で非表示 */
+  #hand .nature-card .cost,
+  #field .nature-card .cost,
+  #hand .hunter-card .cost,
+  #field .hunter-card .cost{
+    display:none !important;
+  }
+
+  #hand .nature-card .animal,
+  #field .nature-card .animal{
+    font-size:18px !important;
+  }
+
+  .panel{margin-bottom:3px !important}
+}
+
+
+.card{
+  position:relative;
+}
+.card-info-btn{
+  position:absolute;
+  top:2px;
+  right:2px;
+  z-index:8;
+  width:18px;
+  height:18px;
+  min-width:18px;
+  min-height:18px;
+  padding:0;
+  margin:0;
+  border:1px solid #9aa79a;
+  border-radius:50%;
+  background:rgba(255,255,255,.94);
+  color:#405240;
+  font-size:11px;
+  line-height:16px;
+  font-weight:900;
+  text-align:center;
+  cursor:pointer;
+  touch-action:manipulation;
+}
+.card-info-btn:active{
+  transform:scale(.94);
+}
+@media(max-width:600px) and (orientation:portrait){
+  .card-info-btn{
+    width:17px;
+    height:17px;
+    min-width:17px;
+    min-height:17px;
+    font-size:10px;
+    line-height:15px;
+    top:1px;
+    right:1px;
+  }
+}
+
 </style>
 
 </head>
@@ -1361,6 +1515,14 @@ button:disabled{opacity:.4;cursor:not-allowed}
 
 
 
+
+
+<div id="cardInfoModal" class="modal" aria-hidden="true" onclick="closeCardInfo(event)">
+  <div class="modal-card card-info-modal-card" onclick="event.stopPropagation()">
+    <button class="card-info-close" type="button" onclick="closeCardInfo()">×</button>
+    <div id="cardInfoContent"></div>
+  </div>
+</div>
 
 <div id="botImpactModal" class="modal" aria-hidden="true">
   <div class="modal-card bot-impact-modal-card">
@@ -2874,6 +3036,105 @@ function updateResourceDisplays(){
   if(dec) dec.textContent=state.pool.decomposer;
 }
 
+
+function cardInfoData(card){
+  if(card.kind==="hunter"){
+    return {
+      emoji:hunterCard.emoji,
+      name:hunterCard.name,
+      level:"特殊カード",
+      cost:"",
+      text:hunterCard.text
+    };
+  }
+
+  if(card.kind==="nature"){
+    const n=natureCards[card.type];
+    return {
+      emoji:n.emoji,
+      name:n.name,
+      level:"自然現象",
+      cost:"",
+      text:n.text
+    };
+  }
+
+  const a=animals[card.type];
+  const costs=[];
+  if(a.star) costs.push(`★${a.star}`);
+  if(a.cost.grass) costs.push(`🌿${a.cost.grass}`);
+  if(a.cost.bug) costs.push(`🐛${a.cost.bug}`);
+  if(a.cost.water) costs.push(`💧${a.cost.water}`);
+
+  let text=`出現コスト：${costs.join(" ") || "なし"}`;
+  if(a.level>=2){
+    text+=`。出現時に+1VP、死亡時に-1VP。`;
+  }
+  if(a.star){
+    text+=` ★コストは捕食対象の星価値の合計で支払います。`;
+  }
+
+  return {
+    emoji:a.emoji,
+    name:a.name,
+    level:`${"★".repeat(a.level)} / レベル${a.level}`,
+    cost:costs.join(" "),
+    text
+  };
+}
+
+function openCardInfo(cardId){
+  let card=
+    state.hand.find(c=>c.id===cardId) ||
+    state.field.find(c=>c.id===cardId);
+
+  if(!card){
+    for(const bot of state.bots){
+      card=bot.hand.find(c=>c.id===cardId) || bot.field.find(c=>c.id===cardId);
+      if(card) break;
+    }
+  }
+  if(!card) return;
+
+  const d=cardInfoData(card);
+  const content=document.getElementById("cardInfoContent");
+  const modal=document.getElementById("cardInfoModal");
+  if(!content || !modal) return;
+
+  content.innerHTML=`
+    <div class="card-info-emoji">${d.emoji}</div>
+    <div class="card-info-name">${d.name}</div>
+    <div class="card-info-level">${d.level}</div>
+    ${d.cost?`<div class="card-info-cost">${d.cost}</div>`:""}
+    <div class="card-info-text">${d.text}</div>
+  `;
+
+  modal.classList.add("show");
+  modal.setAttribute("aria-hidden","false");
+}
+
+function closeCardInfo(ev=null){
+  if(ev && ev.target!==ev.currentTarget) return;
+  const modal=document.getElementById("cardInfoModal");
+  if(!modal) return;
+  modal.classList.remove("show");
+  modal.setAttribute("aria-hidden","true");
+}
+
+function cardInfoTap(event,cardId){
+  // PCのドラッグ操作は妨げず、スマホのタップで説明を開く。
+  if(window.matchMedia && window.matchMedia("(max-width: 600px) and (orientation: portrait)").matches){
+    if(state.selectionMode || state.pendingAppearance) return;
+    if(state.phase===4 || state.phase===5){
+      // 還元・発動フェイズでは既存のカード操作を優先
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    openCardInfo(cardId);
+  }
+}
+
 function cardHTML(card,index,inHand){
   if(card.kind==="hunter"){
     const recycleMode=inHand && state.phase===4 && !state.gameOver;
@@ -2890,6 +3151,9 @@ function cardHTML(card,index,inHand){
     return `
       <div class="card nature-card hunter-card ${usable?"usable-nature":""} ${recycleSelected?"recycle-selected":""}"
            draggable="false" ${clickAttr} title="${hunterCard.text}">
+        <button type="button" class="card-info-btn"
+                onclick="event.preventDefault();event.stopPropagation();openCardInfo('${card.id}')"
+                onpointerdown="event.stopPropagation()">ⓘ</button>
         <div class="animal">${hunterCard.emoji}</div>
         <div class="name">${hunterCard.name}</div>
         <div class="level">特殊</div>
@@ -2913,6 +3177,9 @@ function cardHTML(card,index,inHand){
     return `
       <div class="card nature-card ${usable?"usable-nature":""} ${recycleSelected?"recycle-selected":""}"
            draggable="false" ${clickAttr} title="${n.text}">
+        <button type="button" class="card-info-btn"
+                onclick="event.preventDefault();event.stopPropagation();openCardInfo('${card.id}')"
+                onpointerdown="event.stopPropagation()">ⓘ</button>
         <div class="animal">${n.emoji}</div>
         <div class="name">${n.name}</div>
         <div class="level">自然現象</div>
@@ -2954,6 +3221,9 @@ function cardHTML(card,index,inHand){
   return `
     <div class="card ${a.level===3?"level3":a.level===2?"level2":""} ${inHand?"draggable-card":""} ${preySelectable?"prey-selectable":""} ${activePredator?"predator-active":""} ${pending?"pending-card":""} ${recycleSelected?"recycle-selected":""}"
          ${dragAttrs} ${clickAttr}>
+      <button type="button" class="card-info-btn"
+              onclick="event.preventDefault();event.stopPropagation();openCardInfo('${card.id}')"
+              onpointerdown="event.stopPropagation()">ⓘ</button>
       <div class="animal">${a.emoji}</div>
       <div class="name">${a.name}</div>
       <div class="level">${"★".repeat(a.level)}</div>
